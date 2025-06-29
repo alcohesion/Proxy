@@ -42,3 +42,4 @@
 [2025-06-29T21:18:16.090Z] LOCAL: Ready to forward requests to https://localhost:3000
 [2025-06-29T21:18:46.791Z] SERVER: POST /api/v1/mpesa/b2c/callback/AO3TSHF676HJTJTDJlJjl [032fceb8]
 [2025-06-29T21:18:46.796Z] SERVER: 200 POST /api/v1/mpesa/b2c/callback/AO3TSHF676HJTJTDJlJjl [032fceb8]
+[2025-06-29T21:24:01.951Z] LOCAL: Shutting down local client...
