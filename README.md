@@ -1,18 +1,18 @@
 # Local Tunnel Proxy System
 
-A powerful, self-hosted reverse proxy tunnel system similar to ngrok, built with Node.js & uWebsocket.js for speed. Exposes your local HTTPS services to the internet through a cloud proxy with real-time monitoring and logging.
+A self-hosted reverse proxy tunnel system similar to ngrok, built with Node.js and uWebSockets.js. Exposes local HTTPS services to the internet through a cloud proxy with monitoring and logging capabilities.
 
-## 🚀 Features
+## Features
 
-- **Secure HTTPS Tunneling** - SSL/TLS encryption end-to-end
-- **Real-time Dashboard** - Live monitoring with WebSocket updates
+- **HTTPS Tunneling** - SSL/TLS encryption end-to-end
+- **Dashboard** - Live monitoring with WebSocket updates
 - **Cloud Proxy Integration** - Connect through remote proxy servers
-- **Advanced Logging** - Color-coded, filterable logs with export functionality
-- **Auto-reconnection** - Resilient connection with automatic retry logic
-- **Modern UI** - Beautiful, responsive dashboard built with EJS and modern CSS
-- **Modular Architecture** - Clean, maintainable codebase structure
+- **Logging System** - Color-coded, filterable logs with export functionality
+- **Auto-reconnection** - Connection resilience with automatic retry logic
+- **Web Interface** - Responsive dashboard built with EJS and CSS
+- **Modular Architecture** - Maintainable codebase structure
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 Tunnel/
@@ -35,7 +35,7 @@ Tunnel/
     └── fly.toml       # Fly.io deployment config
 ```
 
-## 🛠️ Quick Start
+## Setup
 
 ### Prerequisites
 
@@ -45,7 +45,7 @@ Tunnel/
 
 ### Local Setup
 
-1. **Clone and install dependencies:**
+1. **Install dependencies:**
    ```bash
    cd Tunnel/Local
    npm install
@@ -87,7 +87,7 @@ MAX_RECONNECT_ATTEMPTS=10
 WEB_INTERFACE_PORT=8080
 ```
 
-## 🎯 How It Works
+## Architecture
 
 ```mermaid
 graph LR
@@ -106,21 +106,21 @@ graph LR
 4. **Response** travels back through the same tunnel
 5. **Dashboard** monitors all traffic in real-time
 
-## 📊 Dashboard Features
+## Dashboard
 
-### Live Statistics
+### Statistics
 - Total requests processed
 - Active connections
 - Success/error rates  
 - Average response times
 
-### Real-time Logs
+### Logging
 - Color-coded log levels (local, proxy, server, error, warn)
-- Live filtering and search
+- Filtering and search
 - Export functionality
 - Auto-scroll with manual override
 
-### Interactive Controls
+### Controls
 - Clear logs
 - Toggle auto-scroll
 - Filter by log type
@@ -128,7 +128,7 @@ graph LR
 - Copy individual log entries
 - Highlight important logs
 
-## 🔧 Configuration
+## Configuration
 
 ### Logging System
 
@@ -170,7 +170,7 @@ Two WebSocket servers run simultaneously:
 - **Port 8080**: Web interface (HTTP/Express)
 - **Port 8081**: Monitor WebSocket for dashboard updates
 
-## 🚀 Deployment
+## Deployment
 
 ### Cloud Proxy (Fly.io)
 
@@ -187,14 +187,14 @@ sudo systemctl enable tunnel-client
 sudo systemctl start tunnel-client
 ```
 
-## 🔐 Security
+## Security
 
 - **End-to-end SSL/TLS** encryption
 - **Token-based authentication** between client and proxy
 - **Certificate validation** for HTTPS connections
 - **Self-signed certificate support** for local development
 
-## 🛠️ Development
+## Development
 
 ### Adding New Features
 
@@ -210,7 +210,7 @@ sudo systemctl start tunnel-client
 - **Consistent exports** - use standard module.exports patterns
 - **Error handling** - comprehensive error catching and logging
 
-## 📝 API Reference
+## API Reference
 
 ### WebSocket Messages
 
@@ -242,7 +242,7 @@ sudo systemctl start tunnel-client
 }
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -267,11 +267,11 @@ sudo systemctl start tunnel-client
 DEBUG=true npm start
 ```
 
-## 📄 License
+## License
 
 MIT License - see LICENSE file for details
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the project
 2. Create feature branch (`git checkout -b feature/amazing-feature`)
@@ -279,12 +279,12 @@ MIT License - see LICENSE file for details
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open Pull Request
 
-## 📞 Support
+## Support
 
-- 📧 Email: support@example.com
-- 🐛 Issues: [GitHub Issues](https://github.com/username/tunnel-proxy/issues)
-- 📖 Docs: [Full Documentation](https://docs.example.com)
+- Email: support@example.com
+- Issues: [GitHub Issues](https://github.com/username/tunnel-proxy/issues)
+- Documentation: [Full Documentation](https://docs.example.com)
 
 ---
 
-**Built with ❤️ using Node.js, Express, uWebSockets.js, and modern web technologies**
+Built using Node.js, Express, uWebSockets.js, and modern web technologies
