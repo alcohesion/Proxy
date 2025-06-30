@@ -1,290 +1,224 @@
-# Local Tunnel Proxy System
+# Proxy Server
 
-A self-hosted reverse proxy tunnel system similar to ngrok, built with Node.js and uWebSockets.js. Exposes local HTTPS services to the internet through a cloud proxy with monitoring and logging capabilities.
+A high-performance HTTP/WebSocket proxy server built with uWebSockets.js and MongoDB, designed for real-time request forwarding and comprehensive analytics.
 
 ## Features
 
-- **HTTPS Tunneling** - SSL/TLS encryption end-to-end
-- **Dashboard** - Live monitoring with WebSocket updates
-- **Cloud Proxy Integration** - Connect through remote proxy servers
-- **Logging System** - Color-coded, filterable logs with export functionality
-- **Auto-reconnection** - Connection resilience with automatic retry logic
-- **Web Interface** - Responsive dashboard built with EJS and CSS
-- **Modular Architecture** - Maintainable codebase structure
+- **High-Performance WebSocket Proxy**: Built on uWebSockets.js for maximum throughput
+- **Real-time Analytics Dashboard**: Live metrics and device tracking via WebSocket
+- **MongoDB Integration**: Persistent storage for requests, devices, and analytics
+- **Secure Authentication**: Token-based authentication for all endpoints
+- **Comprehensive Logging**: Detailed request/response logging with analytics
+- **Scalable Architecture**: Modular design with separation of concerns
+- **Professional Documentation**: Complete API reference and usage examples
 
-## Project Structure
+## Architecture
 
 ```
-Tunnel/
-├── Local/              # Local tunnel client
-│   ├── app.js         # Main tunnel client application
-│   ├── web.js         # Web interface manager
-│   ├── configs/       # Configuration modules
-│   │   ├── index.js   # Config exports
-│   │   ├── log.js     # Logging system
-│   │   └── web.js     # Express setup
-│   ├── routes/        # Express routes
-│   ├── views/         # EJS templates
-│   ├── static/        # CSS/JS assets
-│   ├── wss/           # WebSocket servers
-│   ├── ssl/           # SSL certificates
-│   └── logs/          # Log files
-└── Proxy/             # Cloud proxy server
-    ├── app.js         # Proxy server
-    ├── Dockerfile     # Container configuration
-    └── fly.toml       # Fly.io deployment config
+src/
+├── app.js                  # Main application entry point
+├── configs/                # Configuration management
+│   ├── app.js             # Application configuration
+│   ├── data.js            # Database configuration
+│   └── proxy.js           # Proxy settings
+├── models/                 # MongoDB data models
+│   ├── device.js          # Device tracking model
+│   ├── metrics.js         # Analytics metrics model
+│   └── request.js         # Request logging model
+├── queries/                # Database query operations
+│   ├── device.js          # Device CRUD operations
+│   ├── metrics.js         # Metrics CRUD operations
+│   └── request.js         # Request CRUD operations
+├── services/               # Business logic services
+│   ├── metrics/           # Analytics services
+│   └── proxy/             # Proxy services
+├── utils/                  # Utility functions
+│   └── hex.js             # Secure hex ID generation
+└── queues/                 # Background job processing
+    └── bull/              # Bull queue integration
 ```
 
-## Setup
+## Installation
 
-### Prerequisites
-
-- Node.js 16+ 
-- SSL certificates (self-signed or CA-issued)
-- Access to a cloud server for the proxy (optional)
-
-### Local Setup
-
-1. **Install dependencies:**
+1. **Clone the repository**
    ```bash
-   cd Tunnel/Local
+   git clone <repository-url>
+   cd Tunnel/Proxy
+   ```
+
+2. **Install dependencies**
+   ```bash
    npm install
    ```
 
-2. **Configure environment:**
+3. **Configure environment variables**
    ```bash
-   cp .env.example .env
-   # Edit .env with your settings
+   cp src/.env.example src/.env
+   # Edit src/.env with your configuration
    ```
 
-3. **Setup SSL certificates:**
-   ```bash
-   # Place your certificates in ssl/
-   ssl/
-   ├── cert.pem
-   └── key.pem
-   ```
-
-4. **Start the tunnel:**
+4. **Start the server**
    ```bash
    npm start
    ```
 
-5. **Access dashboard:**
-   Open `http://localhost:8080` in your browser
+## Configuration
 
 ### Environment Variables
 
-```bash
-# Required
-CLOUD_PROXY_URL=wss://your-proxy-server.com:3001
-LOCAL_SERVER_URL=https://localhost:3000
-AUTH_TOKEN=your-secret-token-here
+Copy `src/.env.example` to `src/.env` and configure the following variables:
 
-# Optional
-RECONNECT_INTERVAL=5000
-MAX_RECONNECT_ATTEMPTS=10
-WEB_INTERFACE_PORT=8080
+```env
+# Application Configuration
+NODE_ENV=development
+PORT=8080
+AUTH_TOKEN=your-secure-auth-token
+
+# Database Configuration
+MONGODB_URI=mongodb://localhost:27017/proxy
+REDIS_URL=redis://localhost:6379
+
+# Proxy Configuration
+TARGET_HOST=localhost
+TARGET_PORT=3000
+TARGET_PROTOCOL=http
+
+# Security Configuration
+HEX_ENCRYPTION_KEY=your-32-char-hex-encryption-key
 ```
 
-## Architecture
+### Database Setup
 
-```mermaid
-graph LR
-    A[Internet] --> B[Cloud Proxy]
-    B --> C[WebSocket Tunnel]
-    C --> D[Local Client]
-    D --> E[Your Local Server]
-    
-    F[Dashboard] --> G[Monitor WebSocket]
-    G --> D
-```
+Ensure MongoDB is running and accessible at the configured URI. The application will automatically create the necessary collections and indexes.
 
-1. **Cloud Proxy** receives HTTP requests from the internet
-2. **WebSocket Tunnel** forwards requests to your local client
-3. **Local Client** processes requests and forwards to your local server
-4. **Response** travels back through the same tunnel
-5. **Dashboard** monitors all traffic in real-time
+## API Endpoints
 
-## Dashboard
+### HTTP Endpoints
 
-### Statistics
-- Total requests processed
-- Active connections
-- Success/error rates  
-- Average response times
+- **GET /health** - Health check endpoint
+- **GET /status** - Detailed system status
+- **GET /static/** - Static file serving
 
-### Logging
-- Color-coded log levels (local, proxy, server, error, warn)
-- Filtering and search
-- Export functionality
-- Auto-scroll with manual override
+### WebSocket Endpoints
 
-### Controls
-- Clear logs
-- Toggle auto-scroll
-- Filter by log type
-- Search log content
-- Copy individual log entries
-- Highlight important logs
+- **WS /** - Main proxy endpoint for request forwarding
+- **WS /metrics** - Real-time analytics and metrics dashboard
 
-## Configuration
+For complete API documentation, see [docs/api-reference.md](docs/api-reference.md).
 
-### Logging System
+## Usage Examples
 
-The modular logging system supports:
+### Basic Proxy Connection
 
 ```javascript
-// Usage in code
-log('local', 'Application started');
-log('proxy', 'Connected to cloud proxy');  
-log('server', 'Processing request');
-log('error', 'Connection failed');
-log('warn', 'Retrying connection');
+const WebSocket = require('ws');
+
+const ws = new WebSocket('ws://localhost:8080/?token=your-auth-token');
+
+ws.on('open', () => {
+  // Send HTTP request through proxy
+  ws.send(JSON.stringify({
+    id: 'unique-request-id',
+    method: 'GET',
+    path: '/api/data',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  }));
+});
+
+ws.on('message', (data) => {
+  const response = JSON.parse(data.toString());
+  console.log('Response:', response);
+});
 ```
 
-Features:
-- Console output with colors
-- File logging to `logs/tunnel.log`
-- Real-time dashboard updates via WebSocket
-- Automatic log rotation
+### Metrics Dashboard Connection
 
-### SSL Configuration
+```javascript
+const metricsWs = new WebSocket('ws://localhost:8080/metrics?token=your-auth-token');
 
-For HTTPS tunneling, place your certificates in the `ssl/` directory:
-
-```bash
-ssl/
-├── cert.pem    # Your SSL certificate
-└── key.pem     # Your private key
+metricsWs.on('message', (data) => {
+  const metrics = JSON.parse(data.toString());
+  console.log(`${metrics.type}:`, metrics.data);
+});
 ```
-
-The system supports:
-- Self-signed certificates for development
-- CA-issued certificates for production
-- Automatic certificate validation
-
-### WebSocket Configuration
-
-Two WebSocket servers run simultaneously:
-- **Port 8080**: Web interface (HTTP/Express)
-- **Port 8081**: Monitor WebSocket for dashboard updates
-
-## Deployment
-
-### Cloud Proxy (Fly.io)
-
-```bash
-cd Tunnel/Proxy
-fly deploy
-```
-
-### Local Client (Systemd Service)
-
-```bash
-sudo cp tunnel-client.service /etc/systemd/system/
-sudo systemctl enable tunnel-client
-sudo systemctl start tunnel-client
-```
-
-## Security
-
-- **End-to-end SSL/TLS** encryption
-- **Token-based authentication** between client and proxy
-- **Certificate validation** for HTTPS connections
-- **Self-signed certificate support** for local development
 
 ## Development
 
-### Adding New Features
+### Prerequisites
 
-1. **Logging**: Use the modular `log(kind, message)` function
-2. **Dashboard**: Add new WebSocket message types in `handleMessage()`
-3. **Routes**: Add Express routes in `routes/` directory
-4. **Styles**: Follow the CSS variable system in `static/css/vars.css`
+- Node.js 18+ 
+- MongoDB 4.4+
+- Redis 6+ (optional, for advanced queuing)
 
-### Code Style
+### Running in Development Mode
 
-- **Short, clear names** - no unnecessary prefixes/suffixes
-- **Modular structure** - separate concerns into different files
-- **Consistent exports** - use standard module.exports patterns
-- **Error handling** - comprehensive error catching and logging
+```bash
+# Install dependencies
+npm install
 
-## API Reference
+# Start with automatic restarts
+npm run dev
 
-### WebSocket Messages
+# Run tests
+npm test
 
-```javascript
-// Log message
-{
-  type: 'log',
-  kind: 'server|proxy|local|error|warn',
-  message: 'Log content',
-  timestamp: '2025-06-30T10:30:00.000Z'
-}
-
-// Request message  
-{
-  type: 'request',
-  method: 'GET',
-  url: '/api/data',
-  requestId: 'abc123...'
-}
-
-// Response message
-{
-  type: 'response', 
-  statusCode: 200,
-  method: 'GET',
-  url: '/api/data',
-  requestId: 'abc123...',
-  responseTime: 150
-}
+# Check code style
+npm run lint
 ```
+
+### Project Structure
+
+The project follows a modular architecture pattern:
+
+- **configs/**: Application configuration and settings
+- **models/**: MongoDB schema definitions and hooks
+- **queries/**: Database query operations and CRUD logic
+- **services/**: Business logic and service layer
+- **utils/**: Utility functions and helpers
+- **queues/**: Background job processing
+
+## Security Considerations
+
+- **Token Authentication**: All WebSocket connections require valid authentication tokens
+- **Input Validation**: All incoming data is validated before processing
+- **Rate Limiting**: Built-in rate limiting to prevent abuse
+- **Secure Headers**: Security headers are set for all HTTP responses
+- **Encrypted IDs**: All document IDs use encrypted hex generation
+
+## Performance
+
+- **uWebSockets.js**: High-performance WebSocket implementation
+- **Connection Pooling**: Efficient database connection management
+- **Async Processing**: Non-blocking I/O operations throughout
+- **Memory Management**: Proper cleanup and garbage collection
+- **Metrics Tracking**: Built-in performance monitoring
+
+## Monitoring
+
+### Available Metrics
+
+- Request count and success rates
+- Response time statistics
+- Active device tracking
+- Connection statistics
+- Database performance metrics
+
+### Health Checks
+
+- **GET /health**: Basic health status
+- **GET /status**: Comprehensive system status including database connections
 
 ## Troubleshooting
 
 ### Common Issues
 
-**WebSocket Connection Failed**
-- Check if ports 8080/8081 are available
-- Verify firewall settings
-- Ensure WebSocket server is running
+1. **Connection refused errors**: Verify target server is running and accessible
+2. **Authentication failures**: Check AUTH_TOKEN environment variable
+3. **Database connection errors**: Verify MongoDB is running and URI is correct
+4. **High memory usage**: Monitor request logging and adjust retention policies
 
-**SSL Certificate Errors**
-- Verify certificate files in `ssl/` directory
-- Check certificate validity and format
-- For self-signed certs, add to trusted certificates
+### Debugging
 
-**Proxy Connection Issues**
-- Verify `CLOUD_PROXY_URL` is correct
-- Check `AUTH_TOKEN` matches proxy server
-- Ensure network connectivity to proxy
-
-### Debug Mode
-
-```bash
-DEBUG=true npm start
-```
-
-## License
-
-MIT License - see LICENSE file for details
-
-## Contributing
-
-1. Fork the project
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
-
-## Support
-
-- Email: support@example.com
-- Issues: [GitHub Issues](https://github.com/username/tunnel-proxy/issues)
-- Documentation: [Full Documentation](https://docs.example.com)
-
----
-
-Built using Node.js, Express, uWebSockets.js, and modern web technologies
+Enable debug logging by setting `NODE_ENV=development` in your environment variables.

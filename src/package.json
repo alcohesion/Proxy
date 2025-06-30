@@ -1,0 +1,30 @@
+{
+  "name": "pori",
+  "version": "1.0.0",
+  "description": "uWebSockets proxy server with MongoDB and Redis",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "NODE_ENV=development node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "proxy",
+    "websocket",
+    "uwebsockets",
+    "mongodb",
+    "redis"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.52.0",
+    "mongoose": "^8.0.0",
+    "bull": "^4.12.0",
+    "uuid": "^9.0.1",
+    "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

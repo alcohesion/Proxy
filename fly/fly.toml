@@ -1,0 +1,47 @@
+app = "pori-proxy"
+primary_region = "iad"  # Change to your preferred region
+
+[build]
+  dockerfile = "./Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "8080"
+  HOST = "0.0.0.0"
+  # Secrets will be set via fly secrets
+  
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/health"
+
+[machine]
+  memory = "1024mb"
+  cpus = 1
+
+[[vm]]
+  memory = "1024mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+# Mounts for persistent data
+[mounts]
+  source = "proxy_data"
+  destination = "/data"
+
+# Deploy configuration
+[deploy]
+  release_command = "echo 'Starting proxy server deployment...'"
+  
+[processes]
+  app = "node src/app.js"
