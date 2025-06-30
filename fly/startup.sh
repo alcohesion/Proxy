@@ -22,34 +22,17 @@ touch /data/logs/mongodb.log
 chmod 644 /data/logs/mongodb.log
 
 if [ ! -f /data/mongodb/.initialized ]; then
-    # Start MongoDB temporarily to initialize
+    # Start MongoDB temporarily to initialize (using the exact working command)
     echo "Starting MongoDB for initialization..."
-    mongod --dbpath /data/mongodb --logpath /data/logs/mongodb-init.log --bind_ip 127.0.0.1 --port 27017 --noauth --fork
+    mongod --dbpath /data/mongodb --logpath /data/logs/mongodb.log --bind_ip 127.0.0.1 --port 27017 --noauth --fork
     
     # Wait for MongoDB to be ready
     echo "Waiting for MongoDB to start..."
-    sleep 10
-    
-    # Wait for MongoDB to accept connections
-    timeout=30
-    while ! mongosh --eval "print('MongoDB is ready')" >/dev/null 2>&1 && [ $timeout -gt 0 ]; do
-        echo "Waiting for MongoDB connection... ($timeout seconds left)"
-        sleep 2
-        timeout=$((timeout-2))
-    done
-    
-    if [ $timeout -le 0 ]; then
-        echo "MongoDB failed to start within timeout, trying with mongo client..."
-        if ! mongo --eval "print('MongoDB is ready')" >/dev/null 2>&1; then
-            echo "MongoDB initialization failed"
-            cat /data/logs/mongodb.log
-            exit 1
-        fi
-    fi
+    sleep 5
     
     # Create the proxy database
     echo "Creating proxy database..."
-    mongosh --eval "db = db.getSiblingDB('proxy'); db.createCollection('test'); print('Database proxy created');" || mongo --eval "db = db.getSiblingDB('proxy'); db.createCollection('test'); print('Database proxy created');"
+    mongosh --eval "use proxy; db.createCollection('test'); print('Database proxy created');" || mongo --eval "use proxy; db.createCollection('test'); print('Database proxy created');"
     
     # Shutdown temporary MongoDB
     mongod --shutdown --dbpath /data/mongodb
