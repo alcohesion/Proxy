@@ -22,7 +22,7 @@ if ! flyctl auth whoami &> /dev/null; then
 fi
 
 # App name from fly.toml
-APP_NAME="pori-proxy"
+APP_NAME="pori"
 
 echo "Setting up secrets for $APP_NAME..."
 
@@ -30,51 +30,39 @@ echo "Setting up secrets for $APP_NAME..."
 AUTH_TOKEN=${AUTH_TOKEN:-$(openssl rand -hex 32)}
 echo "Generated AUTH_TOKEN: $AUTH_TOKEN"
 
-# Prompt for MongoDB URI (using MongoDB Atlas)
-if [ -z "$MONGODB_URI" ]; then
-    echo "Please enter your MongoDB Atlas connection string:"
-    echo "   Format: mongodb+srv://username:password@cluster.mongodb.net/database"
-    read -p "MongoDB URI: " MONGODB_URI
+# Load environment variables from src/.env file
+echo "Loading environment variables from src/.env..."
+if [ -f "../src/.env" ]; then
+    # Read .env file and prepare secrets
+    ENV_VARS=""
+    while IFS= read -r line; do
+        # Skip comments and empty lines
+        if [[ ! "$line" =~ ^[[:space:]]*# ]] && [[ ! -z "$line" ]] && [[ "$line" =~ ^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*= ]]; then
+            # Extract variable name and value
+            VAR=$(echo "$line" | cut -d'=' -f1 | xargs)
+            VALUE=$(echo "$line" | cut -d'=' -f2- | xargs)
+            
+            # Add to environment variables list for flyctl secrets set
+            if [ ! -z "$VAR" ] && [ ! -z "$VALUE" ]; then
+                if [ -z "$ENV_VARS" ]; then
+                    ENV_VARS="$VAR=\"$VALUE\""
+                else
+                    ENV_VARS="$ENV_VARS $VAR=\"$VALUE\""
+                fi
+                echo "  - $VAR"
+            fi
+        fi
+    done < "../src/.env"
+    
+    echo "Setting all environment variables as Fly secrets..."
+    
+    # Set all secrets at once
+    eval "flyctl secrets set $ENV_VARS --app \"$APP_NAME\""
+else
+    echo "ERROR: src/.env file not found!"
+    echo "Please make sure you're running this script from the fly/ directory"
+    exit 1
 fi
-
-# Prompt for Redis URL (using Upstash Redis)
-if [ -z "$REDIS_URL" ]; then
-    echo "Please enter your Redis URL (Upstash Redis recommended):"
-    echo "   Format: redis://default:password@host:port"
-    read -p "Redis URL: " REDIS_URL
-fi
-
-# Prompt for target server configuration
-if [ -z "$TARGET_HOST" ]; then
-    read -p "Target server host (default: localhost): " TARGET_HOST
-    TARGET_HOST=${TARGET_HOST:-localhost}
-fi
-
-if [ -z "$TARGET_PORT" ]; then
-    read -p "Target server port (default: 3000): " TARGET_PORT
-    TARGET_PORT=${TARGET_PORT:-3000}
-fi
-
-if [ -z "$TARGET_PROTOCOL" ]; then
-    read -p "Target server protocol (default: http): " TARGET_PROTOCOL
-    TARGET_PROTOCOL=${TARGET_PROTOCOL:-http}
-fi
-
-# Generate hex encryption key
-HEX_ENCRYPTION_KEY=$(openssl rand -hex 16)
-
-echo "Setting Fly secrets..."
-
-# Set all secrets
-flyctl secrets set \
-    AUTH_TOKEN="$AUTH_TOKEN" \
-    MONGODB_URI="$MONGODB_URI" \
-    REDIS_URL="$REDIS_URL" \
-    TARGET_HOST="$TARGET_HOST" \
-    TARGET_PORT="$TARGET_PORT" \
-    TARGET_PROTOCOL="$TARGET_PROTOCOL" \
-    HEX_ENCRYPTION_KEY="$HEX_ENCRYPTION_KEY" \
-    --app "$APP_NAME"
 
 echo "Secrets configured successfully!"
 
@@ -84,7 +72,8 @@ flyctl volumes create proxy_data --region iad --size 3 --app "$APP_NAME" || echo
 
 # Deploy the application
 echo "Deploying application..."
-flyctl deploy --config ./fly.toml --dockerfile ./Dockerfile --app "$APP_NAME"
+cd ..
+flyctl deploy --config ./fly/fly.toml --dockerfile ./fly/Dockerfile --app "$APP_NAME"
 
 echo "Deployment complete!"
 echo ""

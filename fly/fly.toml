@@ -1,17 +1,22 @@
-app = "pori-proxy"
+app = "pori"
 primary_region = "iad"  # Change to your preferred region
 
 [build]
-  dockerfile = "./Dockerfile"
+dockerfile = "Dockerfile"
 
 [env]
-  NODE_ENV = "production"
-  PORT = "8080"
-  HOST = "0.0.0.0"
-  # Secrets will be set via fly secrets
+NODE_ENV = "production"
+PORT = "8080"
+HOST = "0.0.0.0"
+# All sensitive secrets are set via fly secrets
+# Non-sensitive configuration can be set here
+LOG_LEVEL = "info"
+LOG_FORMAT = "json"
+METRICS_ENABLED = "true"
+COMPRESSION_ENABLED = "true"
   
 [http_service]
-  internal_port = 8080
+  internal_port = 80
   force_https = true
   auto_stop_machines = false
   auto_start_machines = true
@@ -25,23 +30,22 @@ primary_region = "iad"  # Change to your preferred region
     timeout = "5s"
     path = "/health"
 
-[machine]
-  memory = "1024mb"
-  cpus = 1
+# Unified deployment - all services in one container
+[processes]
+  app = "/app/init.sh --supervisor"
 
+# VM Configuration for unified deployment
 [[vm]]
-  memory = "1024mb"
+  memory = "2048mb"  # More memory for MongoDB + Redis + App
   cpu_kind = "shared"
-  cpus = 1
+  cpus = 2
 
-# Mounts for persistent data
+# Persistent volume for MongoDB and Redis data
 [mounts]
   source = "proxy_data"
   destination = "/data"
 
 # Deploy configuration
 [deploy]
-  release_command = "echo 'Starting proxy server deployment...'"
-  
-[processes]
-  app = "node src/app.js"
+  strategy = "immediate"
+  release_command = "echo 'Starting unified proxy server deployment...'"

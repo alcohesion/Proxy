@@ -1,0 +1,16 @@
+app = "pori-mongo"
+primary_region = "iad"
+
+[build]
+  image = "mongo:7"
+
+[env]
+  MONGO_INITDB_DATABASE = "proxy"
+
+[[services]]
+  internal_port = 27017
+  protocol = "tcp"
+
+[mounts]
+  source = "mongo_data"
+  destination = "/data/db"

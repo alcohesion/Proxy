@@ -5,11 +5,19 @@ This folder contains all the necessary files for deploying the Pori Proxy server
 ## Files Overview
 
 - `fly.toml` - Fly.io application configuration
-- `Dockerfile` - Production Docker image configuration
+- `Dockerfile` - Production Docker image configuration  
 - `secrets.sh` - Interactive script to set up secrets and deploy
 - `deploy.sh` - Quick deployment script (requires pre-configured env vars)
-- `env.example` - Example environment variables
-- `database-setup.md` - Detailed guide for setting up MongoDB and Redis
+
+## Environment Variables
+
+Environment variables are loaded from `src/.env.example` as the template. All sensitive values are managed through Fly secrets rather than environment files for security.
+
+### Required Secrets (set via flyctl secrets)
+- `MONGODB_URI` - MongoDB connection string
+- `REDIS_URL` - Redis connection URL  
+- `AUTH_TOKEN` - Authentication token for API access
+- `HEX_ENCRYPTION_KEY` - 32-character hex key for encryption
 
 ## Quick Start
 

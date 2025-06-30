@@ -1,0 +1,57 @@
+services:
+  # Main application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-8080}:8080"
+    env_file:
+      - src/.env
+    depends_on:
+      - redis
+      - mongo
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - proxy-network
+    restart: unless-stopped
+
+  # MongoDB service
+  mongo:
+    image: mongo:8.0
+    ports:
+      - "27018:27017"  # Use different port to avoid conflicts
+    environment:
+      - MONGO_INITDB_DATABASE=proxy
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    networks:
+      - proxy-network
+    restart: unless-stopped
+    command: mongod --logpath /dev/stdout --logappend
+
+  # Redis service
+  redis:
+    image: redis:8.0.2-alpine
+    ports:
+      - "6380:6379"  # Use different port to avoid conflicts
+    volumes:
+      - redis-data:/data
+    networks:
+      - proxy-network
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+
+volumes:
+  mongo-data:
+    driver: local
+  mongo-config:
+    driver: local
+  redis-data:
+    driver: local
+
+networks:
+  proxy-network:
+    driver: bridge

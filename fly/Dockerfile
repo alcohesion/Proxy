@@ -1,42 +1,77 @@
-# Use the official Node.js 18 image
-FROM node:18-alpine
+# Multi-service Dockerfile for Proxy Server
+# Includes MongoDB, Redis, Node.js app, and Nginx in a single container
+
+FROM ubuntu:22.04
+
+# Avoid prompts from apt
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Install system dependencies
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    git
+RUN apt-get update && apt-get install -y \
+  wget \
+  gnupg \
+  lsb-release \
+  software-properties-common \
+  curl \
+  build-essential \
+  supervisor \
+  nginx \
+  && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
+# Install Node.js 22
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+  apt-get install -y nodejs && \
+  rm -rf /var/lib/apt/lists/*
+
+# Install MongoDB
+RUN wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | apt-key add - && \
+  echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-7.0.list && \
+  apt-get update && \
+  apt-get install -y mongodb-org && \
+  rm -rf /var/lib/apt/lists/*
+
+# Install Redis
+RUN add-apt-repository ppa:redislabs/redis && \
+  apt-get update && \
+  apt-get install -y redis-server && \
+  rm -rf /var/lib/apt/lists/*
+
+# Create application directory
 WORKDIR /app
 
-# Copy package files
-COPY src/package*.json ./
-
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
-
-# Copy application code
+# Copy application files
 COPY src/ ./
 
-# Create data directory for persistence
-RUN mkdir -p /data
+# Install dependencies
+RUN npm ci --only=production
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+# Copy configuration files
+COPY fly/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY fly/nginx/default.conf /etc/nginx/conf.d/default.conf
 
-# Change ownership
-RUN chown -R nodejs:nodejs /app /data
-USER nodejs
+# Copy supervisor configuration
+COPY fly/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Expose port
-EXPOSE 8080
+# Create necessary directories
+RUN mkdir -p /data/mongodb /data/redis /data/logs /var/log/nginx && \
+    chown -R mongodb:mongodb /data/mongodb && \
+    chown -R redis:redis /data/redis && \
+    chown -R www-data:www-data /var/log/nginx
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8080/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
+# Copy service initialization scripts
+COPY fly/startup.sh ./startup.sh
+COPY fly/init.sh ./init.sh
+RUN chmod +x ./startup.sh ./init.sh
 
-# Start command
-CMD ["node", "app.js"]
+# Remove default nginx site
+RUN rm -f /etc/nginx/sites-enabled/default
+
+# Expose ports
+EXPOSE 80 443 8080 27017 6379
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PATH="/app/node_modules/.bin:$PATH"
+
+# Default command - will be overridden by fly.toml processes
+CMD ["./startup.sh"]

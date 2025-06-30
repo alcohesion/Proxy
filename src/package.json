@@ -5,7 +5,7 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "NODE_ENV=development node app.js",
+    "dev": "nodemon app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -15,16 +15,19 @@
     "mongodb",
     "redis"
   ],
-  "author": "Your Name",
+  "author": "Fredrick Femar",
   "license": "MIT",
   "dependencies": {
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.52.0",
-    "mongoose": "^8.0.0",
-    "bull": "^4.12.0",
-    "uuid": "^9.0.1",
-    "dotenv": "^16.3.1"
+    "mongoose": "^8.16.1",
+    "bull": "^4.16.5",
+    "uuid": "^11.1.0",
+    "dotenv": "^17.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
   }
 }
