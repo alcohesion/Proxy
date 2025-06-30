@@ -9,26 +9,50 @@ echo "Starting Proxy Server unified initialization..."
 mkdir -p /data/mongodb /data/redis /data/logs /var/log/nginx
 
 # Set proper permissions
-chown -R mongodb:mongodb /data/mongodb
-chown -R redis:redis /data/redis
-chown -R www-data:www-data /var/log/nginx
+chmod -R 755 /data
+chown -R root:root /data
 
 echo "Directories created and permissions set"
 
 # Initialize MongoDB
 echo "Initializing MongoDB..."
+
+# Ensure log file exists and has proper permissions
+touch /data/logs/mongodb.log
+chmod 644 /data/logs/mongodb.log
+
 if [ ! -f /data/mongodb/.initialized ]; then
     # Start MongoDB temporarily to initialize
-    mongod --dbpath /data/mongodb --bind_ip 127.0.0.1 --port 27017 --fork --logpath /data/logs/mongodb-init.log
+    echo "Starting MongoDB for initialization..."
+    mongod --dbpath /data/mongodb --logpath /data/logs/mongodb-init.log --bind_ip 127.0.0.1 --port 27017 --noauth --fork
     
     # Wait for MongoDB to be ready
-    sleep 5
+    echo "Waiting for MongoDB to start..."
+    sleep 10
+    
+    # Wait for MongoDB to accept connections
+    timeout=30
+    while ! mongosh --eval "print('MongoDB is ready')" >/dev/null 2>&1 && [ $timeout -gt 0 ]; do
+        echo "Waiting for MongoDB connection... ($timeout seconds left)"
+        sleep 2
+        timeout=$((timeout-2))
+    done
+    
+    if [ $timeout -le 0 ]; then
+        echo "MongoDB failed to start within timeout, trying with mongo client..."
+        if ! mongo --eval "print('MongoDB is ready')" >/dev/null 2>&1; then
+            echo "MongoDB initialization failed"
+            cat /data/logs/mongodb.log
+            exit 1
+        fi
+    fi
     
     # Create the proxy database
-    mongo --eval "db = db.getSiblingDB('proxy'); db.createCollection('test'); print('Database proxy created');"
+    echo "Creating proxy database..."
+    mongosh --eval "db = db.getSiblingDB('proxy'); db.createCollection('test'); print('Database proxy created');" || mongo --eval "db = db.getSiblingDB('proxy'); db.createCollection('test'); print('Database proxy created');"
     
     # Shutdown temporary MongoDB
-    mongod --dbpath /data/mongodb --shutdown
+    mongod --shutdown --dbpath /data/mongodb
     
     # Mark as initialized
     touch /data/mongodb/.initialized
@@ -39,6 +63,7 @@ fi
 
 # Initialize Redis configuration
 echo "Configuring Redis..."
+mkdir -p /etc/redis
 cat > /etc/redis/redis.conf << EOF
 # Redis configuration for Fly.io deployment
 bind 127.0.0.1
@@ -51,9 +76,15 @@ save 300 10
 save 60 10000
 maxmemory 256mb
 maxmemory-policy allkeys-lru
+daemonize no
 EOF
 
 echo "Redis configured"
+
+# Initialize Redis data directory
+echo "Initializing Redis..."
+touch /data/logs/redis.log
+chmod 644 /data/logs/redis.log
 
 # Test Nginx configuration
 echo "Testing Nginx configuration..."

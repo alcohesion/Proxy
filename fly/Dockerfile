@@ -54,9 +54,8 @@ COPY fly/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Create necessary directories
 RUN mkdir -p /data/mongodb /data/redis /data/logs /var/log/nginx && \
-    chown -R mongodb:mongodb /data/mongodb && \
-    chown -R redis:redis /data/redis && \
-    chown -R www-data:www-data /var/log/nginx
+    chmod -R 755 /data && \
+    chown -R root:root /data
 
 # Copy service initialization scripts
 COPY fly/startup.sh ./startup.sh
