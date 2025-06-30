@@ -104,7 +104,7 @@ Ensure MongoDB is running and accessible at the configured URI. The application 
 - **WS /** - Main proxy endpoint for request forwarding
 - **WS /metrics** - Real-time analytics and metrics dashboard
 
-For complete API documentation, see [docs/api-reference.md](docs/api-reference.md).
+For complete API documentation, see [docs/api.md](docs/api.md).
 
 ## Usage Examples
 
