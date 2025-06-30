@@ -1,9 +1,17 @@
 const { metricsQueue } = require('./queues');
+const log = require('../../logging');
 const { Metrics } = require('../../models');
 const { metrics: metricsQuery } = require('../../queries');
 const { broadcastToMetrics } = require('../../services/metrics/websocket');
 
 const MetricsWorker = () => {
+	// Check if queue is available before setting up worker
+	if (!metricsQueue) {
+		log.warn('Metrics queue not available, skipping worker initialization');
+		return;
+	}
+
+	try {
 	metricsQueue.process('response', async (job) => {
 		const { requestId, statusCode, duration, timestamp } = job.data;
 		
@@ -31,10 +39,10 @@ const MetricsWorker = () => {
 				}
 			});
 			
-			console.log(`Metrics processed for request ${requestId}`);
+			log.metrics(`Metrics processed for request ${requestId}`);
 			
 		} catch (error) {
-			console.error('Error processing metrics:', error);
+			log.queue('Error processing metrics:', error);
 			throw error;
 		}
 		
@@ -65,7 +73,7 @@ const MetricsWorker = () => {
 			});
 			
 		} catch (err) {
-			console.error('Error processing error metrics:', err);
+			log.queue('Error processing error metrics:', err);
 			throw err;
 		}
 		
@@ -73,14 +81,17 @@ const MetricsWorker = () => {
 	});
 
 	metricsQueue.on('completed', (job, result) => {
-		console.log(`Metrics job ${job.id} completed`);
+		log.queue(`Metrics job ${job.id} completed`);
 	});
 
 	metricsQueue.on('failed', (job, err) => {
-		console.error(`Metrics job ${job.id} failed:`, err);
+		log.queue(`Metrics job ${job.id} failed:`, err);
 	});
 
-	console.log('Metrics worker started');
+	log.worker('Metrics worker started');
+	} catch (error) {
+		log.worker('Failed to start metrics worker:', error);
+	}
 };
 
 module.exports = MetricsWorker;

@@ -1,3 +1,4 @@
+const log = require('../../../logging');
 const { Request, Device } = require('../../../models');
 const { request: requestQuery, device: deviceQuery } = require('../../../queries');
 const { proxy } = require('../../../configs');
@@ -25,7 +26,7 @@ const createOrUpdateDevice = async (deviceInfo) => {
 	try {
 		return await deviceQuery.findOrCreate(deviceInfo);
 	} catch (error) {
-		console.error('Error creating/updating device:', error);
+		log.error('Error creating/updating device:', error);
 		return null;
 	}
 };
@@ -50,7 +51,7 @@ const createRequest = async (req, device) => {
 
 		return await requestQuery.create(requestData);
 	} catch (error) {
-		console.error('Error creating request:', error);
+		log.error('Error creating request:', error);
 		return null;
 	}
 };
@@ -58,22 +59,31 @@ const createRequest = async (req, device) => {
 module.exports = (app, api) => {
 	// Handle all HTTP requests for forwarding
 	app.any('/*', async (res, req) => {
-		if (req.getUrl().startsWith('/metrics') || req.getUrl().startsWith('/health')) {
-			return; // Skip these endpoints
+		// Skip health and metrics endpoints - they have their own handlers
+		if (req.getUrl().startsWith('/metrics') || req.getUrl().startsWith('/health') || req.getUrl().startsWith('/status')) {
+			return; // Let other handlers handle these
 		}
+
+		let aborted = false;
+		res.onAborted(() => {
+			aborted = true;
+			log.warn('Proxy request aborted');
+		});
 
 		const deviceInfo = getDeviceInfo(req);
 		const device = await createOrUpdateDevice(deviceInfo);
 		const request = await createRequest(req, device);
 
 		if (!localClient) {
-			res.writeStatus('502 Bad Gateway');
-			res.writeHeader('Content-Type', 'application/json');
-			res.end(JSON.stringify({
-				error: 'Service Unavailable',
-				message: 'Local development server is not connected',
-				timestamp: new Date().toISOString()
-			}));
+			if (!aborted) {
+				res.writeStatus('502 Bad Gateway');
+				res.writeHeader('Content-Type', 'application/json');
+				res.end(JSON.stringify({
+					error: 'Service Unavailable',
+					message: 'Local development server is not connected',
+					timestamp: new Date().toISOString()
+				}));
+			}
 			
 			if (request) {
 				await requestQuery.updateStatus(request.hex, 'error', 'Local client not connected');
@@ -116,7 +126,7 @@ module.exports = (app, api) => {
 					await requestQuery.updateStatus(request.hex, 'forwarded');
 					await requestQuery.updateByHex(request.hex, { body: body || null });
 				} catch (error) {
-					console.error('Error updating request:', error);
+					log.error('Error updating request:', error);
 				}
 			}
 		});
@@ -127,7 +137,7 @@ module.exports = (app, api) => {
 				try {
 					await requestQuery.updateStatus(request.hex, 'error', 'Request aborted');
 				} catch (error) {
-					console.error('Error updating aborted request:', error);
+					log.error('Error updating aborted request:', error);
 				}
 			}
 		});
@@ -152,7 +162,7 @@ module.exports = (app, api) => {
 				try {
 					await requestQuery.updateStatus(req.hex, 'timeout');
 				} catch (error) {
-					console.error('Error updating timeout request:', error);
+					log.error('Error updating timeout request:', error);
 				}
 			}
 		}, proxy.timeout);

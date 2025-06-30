@@ -1,27 +1,38 @@
 const { requestQueue } = require('./queues');
+const log = require('../../logging');
 
 const RequestWorker = () => {
-	requestQueue.process('forward', async (job) => {
-		const { requestId, method, url, path, query, headers, body } = job.data;
-		
-		console.log(`Processing request ${requestId}: ${method} ${url}`);
-		
-		// Here we would send the request to the local client
-		// This is handled in the WebSocket service, but we can add
-		// additional processing logic here if needed
-		
-		return { requestId, processed: true };
-	});
+	// Check if queue is available before setting up worker
+	if (!requestQueue) {
+		log.warn('Request queue not available, skipping worker initialization');
+		return;
+	}
 
-	requestQueue.on('completed', (job, result) => {
-		console.log(`Request job ${job.id} completed:`, result);
-	});
+	try {
+		requestQueue.process('forward', async (job) => {
+			const { requestId, method, url, path, query, headers, body } = job.data;
+			
+			log.request(`Processing request ${requestId}: ${method} ${url}`);
+			
+			// Here we would send the request to the local client
+			// This is handled in the WebSocket service, but we can add
+			// additional processing logic here if needed
+			
+			return { requestId, processed: true };
+		});
 
-	requestQueue.on('failed', (job, err) => {
-		console.error(`Request job ${job.id} failed:`, err);
-	});
+		requestQueue.on('completed', (job, result) => {
+			log.queue(`Request job ${job.id} completed:`, result);
+		});
 
-	console.log('Request worker started');
+		requestQueue.on('failed', (job, err) => {
+			log.queue(`Request job ${job.id} failed:`, err);
+		});
+
+		log.worker('Request worker started');
+	} catch (error) {
+		log.worker('Failed to start request worker:', error);
+	}
 };
 
 module.exports = RequestWorker;

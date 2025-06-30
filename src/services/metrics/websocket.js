@@ -1,3 +1,4 @@
+const log = require('../../logging');
 const { Metrics, Request, Device } = require('../../models');
 const { metrics: metricsQuery, request: requestQuery, device: deviceQuery } = require('../../queries');
 const { proxy } = require('../../configs');
@@ -74,7 +75,7 @@ module.exports = (app, api) => {
 				}
 				
 			} catch (error) {
-				console.error('Error handling metrics WebSocket message:', error);
+				log.wss('Error handling metrics WebSocket message:', error);
 				ws.send(JSON.stringify({
 					type: 'error',
 					message: 'Failed to process request'
@@ -84,7 +85,7 @@ module.exports = (app, api) => {
 		
 		open: (ws) => {
 			connectedDashboards.add(ws);
-			console.log('Dashboard connected to metrics endpoint');
+			log.connect('Dashboard connected to metrics endpoint');
 			
 			ws.send(JSON.stringify({
 				type: 'welcome',
@@ -95,7 +96,7 @@ module.exports = (app, api) => {
 		
 		close: (ws, code, message) => {
 			connectedDashboards.delete(ws);
-			console.log('Dashboard disconnected from metrics endpoint');
+			log.disconnect('Dashboard disconnected from metrics endpoint');
 		}
 	});
 };

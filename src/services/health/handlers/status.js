@@ -1,7 +1,12 @@
+const log = require('../../../logging');
 const { Request, Device } = require('../../../models');
 
 module.exports = (app, api) => {
 	app.get('/health', (res, req) => {
+		res.onAborted(() => {
+			log.warn('Health check request aborted');
+		});
+		
 		res.writeHeader('Content-Type', 'application/json');
 		res.end(JSON.stringify({
 			status: 'healthy',
@@ -15,6 +20,13 @@ module.exports = (app, api) => {
 	});
 
 	app.get('/status', async (res, req) => {
+		let aborted = false;
+		
+		res.onAborted(() => {
+			aborted = true;
+			log.warn('Status check request aborted');
+		});
+		
 		try {
 			const [totalRequests, totalDevices, activeDevices] = await Promise.all([
 				Request.countDocuments(),
@@ -22,25 +34,31 @@ module.exports = (app, api) => {
 				Device.countDocuments({ active: true })
 			]);
 
-			res.writeHeader('Content-Type', 'application/json');
-			res.end(JSON.stringify({
-				proxy: 'running',
-				database: 'connected',
-				stats: {
-					totalRequests,
-					totalDevices,
-					activeDevices
-				},
-				uptime: process.uptime(),
-				timestamp: new Date().toISOString()
-			}));
+			if (!aborted) {
+				res.writeHeader('Content-Type', 'application/json');
+				res.end(JSON.stringify({
+					proxy: 'running',
+					database: 'connected',
+					stats: {
+						totalRequests,
+						totalDevices,
+						activeDevices
+					},
+					uptime: process.uptime(),
+					timestamp: new Date().toISOString()
+				}));
+			}
 		} catch (error) {
-			res.writeStatus('500 Internal Server Error');
-			res.writeHeader('Content-Type', 'application/json');
-			res.end(JSON.stringify({
-				error: 'Database connection failed',
-				timestamp: new Date().toISOString()
-			}));
+			log.error('Error in status endpoint:', error);
+			if (!aborted) {
+				res.writeStatus('500 Internal Server Error');
+				res.writeHeader('Content-Type', 'application/json');
+				res.end(JSON.stringify({
+					error: 'Database connection failed',
+					message: error.message,
+					timestamp: new Date().toISOString()
+				}));
+			}
 		}
 	});
 };

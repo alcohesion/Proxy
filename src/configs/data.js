@@ -1,3 +1,5 @@
+const log = require('../logging');
+
 const mongo = {
 	uri: process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/proxy',
 	options: {
@@ -22,7 +24,7 @@ if (process.env.REDIS_URL) {
 			maxRetriesPerRequest: parseInt(process.env.REDIS_MAX_RETRIES) || 3
 		};
 	} catch (error) {
-		console.error('Invalid REDIS_URL format:', error.message);
+		log.error('Invalid REDIS_URL format:', error);
 		// Fallback to individual config
 		redis = {
 			host: process.env.REDIS_HOST || 'localhost',
