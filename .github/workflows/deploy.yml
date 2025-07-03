@@ -1,0 +1,133 @@
+name: Deploy to Ubuntu Server
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup SSH key
+      uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+    - name: Add server to known hosts
+      run: |
+        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+        
+    - name: Create environment file from secrets
+      run: |
+        cat > docker/.env << EOF
+        # ===========================================
+        # PROXY SERVER ENVIRONMENT CONFIGURATION
+        # ===========================================
+
+        # Server Configuration
+        HOST=0.0.0.0
+        PORT=8080
+        NODE_ENV=production
+
+        # Security - CHANGE THIS TO A STRONG SECRET!
+        # Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+        AUTH_TOKEN=${{ secrets.AUTH_TOKEN }}
+
+        # Hex Encryption Key - Generate with: node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"
+        HEX_ENCRYPTION_KEY=${{ secrets.HEX_ENCRYPTION_KEY }}
+
+        # CORS Configuration
+        # Use * for all origins or specify comma-separated domains
+        ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS || '*' }}
+
+        # MongoDB Configuration - Docker deployment
+        MONGODB_URI=mongodb://mongo:27017/proxy
+        MONGO_URI=mongodb://mongo:27017/proxy
+        MONGO_MAX_POOL_SIZE=10
+        MONGO_SERVER_SELECTION_TIMEOUT=5000
+        MONGO_SOCKET_TIMEOUT=45000
+        # Advanced MongoDB options
+        MONGO_OPTIONS_STRING=retryWrites=true&w=majority
+
+        # Redis Configuration - Docker deployment
+        REDIS_HOST=redis
+        REDIS_PORT=6379
+        REDIS_PASSWORD=
+        REDIS_URL=redis://redis:6379
+        REDIS_DB=0
+        REDIS_MAX_RETRIES=3
+
+        # Proxy Configuration
+        PROXY_TIMEOUT=30000
+        MAX_REQUEST_SIZE=10mb
+        COMPRESSION_ENABLED=true
+
+        # Metrics Configuration
+        METRICS_ENABLED=true
+        METRICS_RETENTION_DAYS=7
+
+        # WebSocket Configuration
+        WS_MAX_COMPRESSED_SIZE=65536
+        WS_MAX_BACKPRESSURE=65536
+        WS_PING_INTERVAL=30000
+
+        # Logging Configuration
+        LOG_LEVEL=info
+        LOG_FORMAT=json
+        FORCE_CONSOLE_OUTPUT=true
+
+        # Performance Configuration
+        MAX_CONCURRENT_REQUESTS=1000
+        REQUEST_RATE_LIMIT=100
+        DEVICE_CACHE_TTL=3600
+
+        # Security Headers & Rate Limiting
+        CORS_ORIGINS=*
+        RATE_LIMIT_WINDOW=900000
+        RATE_LIMIT_MAX_REQUESTS=100
+        MAX_CONNECTIONS=1000
+
+        # Development Configuration
+        DEBUG_MODE=false
+        MOCK_RESPONSES=false
+        SIMULATE_LATENCY=0
+        EOF
+        
+    - name: Copy environment file to server
+      run: |
+        scp docker/.env ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:~/apps/Proxy/docker/.env
+        
+    - name: Deploy to server
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+          # Navigate to the apps directory
+          cd apps/Proxy
+          
+          # Pull latest changes
+          git pull origin main
+          
+          # Navigate to docker directory
+          cd docker
+          
+          # Stop existing containers
+          make stop || true
+          
+          # Start the application using make
+          make start
+        EOF
+        
+    - name: Verify deployment
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+          cd apps/Proxy/docker
+          echo "Waiting for services to start..."
+          sleep 30
+          make status
+        EOF
