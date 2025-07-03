@@ -62,7 +62,7 @@ Value: ubuntu
 
 Name: SERVER_HOST
 Value: 192.168.1.100
-(replace with your actual server IP address or domain name)
+(replace with your correct server IP address or domain name)
 ```
 
 **Application Secrets:**
