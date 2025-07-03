@@ -119,6 +119,9 @@ cat ~/.ssh/id_rsa
    ```bash
    # Copy public key to server
    ssh-copy-id -i ~/.ssh/id_rsa.pub user@your-server-ip
+
+   # Run by: 
+   ssh -i path_to/.ssh/id_rsa 'user@ip'
    
    # Or manually append to authorized_keys
    cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
