@@ -1,9 +1,15 @@
 const { Device } = require('../models');
+const { crypto } = require('../utils');
 
 const device = {
 	// Create a new device
 	create: async (data) => {
 		try {
+			// Ensure hex is generated if not provided
+			if (!data.hex) {
+				data.hex = crypto.device();
+			}
+			
 			const newDevice = new Device(data);
 			return await newDevice.save();
 		} catch (error) {
@@ -48,7 +54,7 @@ const device = {
 			let device = await Device.findOne({ fingerprint: deviceInfo.fingerprint });
 			
 			if (!device) {
-				device = new Device({
+				const deviceData = {
 					...deviceInfo,
 					stats: {
 						totalRequests: 1,
@@ -56,7 +62,14 @@ const device = {
 						failedRequests: 0,
 						lastRequestAt: new Date()
 					}
-				});
+				};
+				
+				// Ensure hex is generated if not provided
+				if (!deviceData.hex) {
+					deviceData.hex = crypto.device();
+				}
+				
+				device = new Device(deviceData);
 				await device.save();
 			} else {
 				// Update existing device stats

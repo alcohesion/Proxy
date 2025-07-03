@@ -24,7 +24,7 @@ const handleMessage = async (ws, message, isBinary, metricsInstance) => {
 				break;
 			default:
 				ws.send(JSON.stringify({
-					error: true,
+					type: 'error',
 					message: 'Unknown message type',
 					code: 'UNKNOWN_TYPE'
 				}));
@@ -33,7 +33,7 @@ const handleMessage = async (ws, message, isBinary, metricsInstance) => {
 	} catch (error) {
 		console.error('Error processing metrics message:', error);
 		ws.send(JSON.stringify({
-			error: true,
+			type: 'error',
 			message: 'Invalid message format',
 			code: 'INVALID_JSON'
 		}));

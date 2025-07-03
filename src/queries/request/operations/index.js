@@ -4,6 +4,7 @@ const findmany = require('./findmany');
 const count = require('./count');
 const aggregate = require('./aggregate');
 const deletebyhex = require('./deletebyhex');
+const update = require('./update');
 
 module.exports = {
 	create,
@@ -11,5 +12,6 @@ module.exports = {
 	findmany,
 	count,
 	aggregate,
-	deletebyhex
+	deletebyhex,
+	...update
 };

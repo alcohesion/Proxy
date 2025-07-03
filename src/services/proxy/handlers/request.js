@@ -83,6 +83,9 @@ module.exports = (app, client) => {
 			requestData.headers[key] = value;
 		});
 
+		// Log incoming HTTP request
+		log.request(`HTTP request received - Method: ${requestData.method}, Path: ${requestData.path}, IP: ${requestData.headers['x-forwarded-for'] || requestData.headers['x-real-ip'] || 'unknown'}`);
+
 		// Extract device info immediately
 		const deviceInfo = {
 			ip: requestData.headers['x-forwarded-for'] || requestData.headers['x-real-ip'] || 'unknown',
@@ -98,6 +101,11 @@ module.exports = (app, client) => {
 			// Now we can safely do async operations
 			const device = await createOrUpdateDevice(deviceInfo);
 			const request = await createRequest(requestData, device);
+
+			// Log request creation with hex ID
+			if (request) {
+				log.proxy(`Request created - Method: ${requestData.method}, Path: ${requestData.path}, RequestID: ${request.hex}`);
+			}
 
 			if (!client.isClientConnected()) {
 				if (!aborted) {
@@ -128,59 +136,72 @@ module.exports = (app, client) => {
 			// Store response object
 			client.addPendingRequest(request.hex, { res, request, startTime: Date.now() });
 
-			// Read request body
-			let body = '';
-			res.onData(async (chunk, isLast) => {
-				body += Buffer.from(chunk).toString();
-				if (isLast) {
-					// Send request directly to local client via WebSocket
-					const localClient = client.getLocalClient();
-					if (localClient && localClient.authenticated) {
-						try {
-							// Send request to local client
-							localClient.send(JSON.stringify({
-								type: 'request',
-								requestId: request.hex,
-								method: request.method,
-								url: request.url,
-								path: request.path,
-								query: request.query,
-								headers: request.headers,
-								body: body || null,
-								timestamp: new Date().toISOString()
-							}));
+			// Function to process and forward request
+			const processRequest = async (body = '') => {
+				const localClient = client.getLocalClient();
+				if (localClient && localClient.authenticated) {
+					try {
+						// Log message being sent to local WebSocket
+						log.wss(`Sending to local WS client - Method: ${request.method}, Path: ${request.path}, RequestID: ${request.hex}`);
+						
+						// Send request to local client
+						localClient.send(JSON.stringify({
+							type: 'request',
+							requestId: request.hex,
+							method: request.method,
+							url: request.url,
+							path: request.path,
+							query: request.query,
+							headers: request.headers,
+							body: body || null,
+							timestamp: new Date().toISOString()
+						}));
 
-							// Update request status
-							await requestQuery.updateStatus(request.hex, 'forwarded');
-							await requestQuery.updateByHex(request.hex, { body: body || null });
-							
-							log.info(`Request ${request.hex} forwarded to local client: ${request.method} ${request.path}`);
-						} catch (error) {
-							log.error('Error sending request to local client:', error);
-							
-							// Send error response
-							client.removePendingRequest(request.hex);
-							if (!aborted) {
-								sendResponse(res, 500, {
-									error: 'Internal Server Error',
-									message: 'Failed to forward request to local client',
-									timestamp: new Date().toISOString()
-								});
-							}
-						}
-					} else {
-						// Local client not available
+						// Update request status
+						await requestQuery.updateStatus(request.hex, 'forwarded');
+						await requestQuery.updateByHex(request.hex, { body: body || null });
+						
+						log.proxy(`Request forwarded successfully - Method: ${request.method}, Path: ${request.path}, RequestID: ${request.hex}`);
+					} catch (error) {
+						log.error('Error sending request to local client:', error);
+						
+						// Send error response
 						client.removePendingRequest(request.hex);
 						if (!aborted) {
-							sendResponse(res, 502, {
-								error: 'Service Unavailable',
-								message: 'Local client not available',
+							sendResponse(res, 500, {
+								error: 'Internal Server Error',
+								message: 'Failed to forward request to local client',
 								timestamp: new Date().toISOString()
 							});
 						}
 					}
+				} else {
+					// Local client not available
+					client.removePendingRequest(request.hex);
+					if (!aborted) {
+						sendResponse(res, 502, {
+							error: 'Service Unavailable',
+							message: 'Local client not available',
+							timestamp: new Date().toISOString()
+						});
+					}
 				}
-			});
+			};
+
+			// Handle request body reading
+			if (request.method === 'GET' || request.method === 'HEAD' || request.method === 'DELETE') {
+				// For methods that typically don't have a body, process immediately
+				await processRequest('');
+			} else {
+				// For methods that might have a body, read it first
+				let body = '';
+				res.onData(async (chunk, isLast) => {
+					body += Buffer.from(chunk).toString();
+					if (isLast) {
+						await processRequest(body);
+					}
+				});
+			}
 
 			res.onAborted(async () => {
 				client.removePendingRequest(request.hex);
@@ -210,6 +231,7 @@ module.exports = (app, client) => {
 					
 					try {
 						await requestQuery.updateStatus(req.hex, 'timeout');
+						log.proxy(`Request timeout - RequestID: ${req.hex}, Duration: ${proxy.timeout}ms`);
 					} catch (error) {
 						log.error('Error updating timeout request:', error);
 					}

@@ -4,7 +4,7 @@ const uWs = require('uWebSockets.js');
 const authenticate = (ws, token) => {
 	if (!token || token !== process.env.AUTH_TOKEN) {
 		ws.send(JSON.stringify({
-			error: true,
+			type: 'error',
 			message: 'Authentication required',
 			code: 'AUTH_REQUIRED'
 		}));

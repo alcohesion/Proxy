@@ -25,11 +25,15 @@ const metrics = new mongoose.Schema({
 
 // Middleware to generate hex for new documents
 metrics.pre('save', function(next) {
-	// Generate hex if not already set (for new documents)
-	if (this.isNew && !this.hex) {
-		this.hex = crypto.metrics();
+	try {
+		// Generate hex if not already set (for new documents)
+		if (this.isNew && !this.hex) {
+			this.hex = crypto.metrics();
+		}
+		next();
+	} catch (error) {
+		next(error);
 	}
-	next();
 });
 
 // TTL index to auto-delete old metrics based on environment configuration

@@ -31,15 +31,19 @@ const request = new mongoose.Schema({
 
 // Middleware to update the `updatedAt` timestamp on modification
 request.pre('save', function(next) {
-	// Generate hex if not already set (for new documents)
-	if (this.isNew && !this.hex) {
-		this.hex = crypto.request();
+	try {
+		// Generate hex if not already set (for new documents)
+		if (this.isNew && !this.hex) {
+			this.hex = crypto.request();
+		}
+		
+		if (this.isModified() && !this.isNew) {
+			this.updatedAt = new Date();
+		}
+		next();
+	} catch (error) {
+		next(error);
 	}
-	
-	if (this.isModified() && !this.isNew) {
-		this.updatedAt = new Date();
-	}
-	next();
 });
 
 request.pre('findOneAndUpdate', function() {

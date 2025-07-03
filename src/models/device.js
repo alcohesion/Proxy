@@ -33,15 +33,19 @@ const device = new mongoose.Schema({
 
 // Middleware to update the `updatedAt` timestamp on modification
 device.pre('save', function(next) {
-	// Generate hex if not already set (for new documents)
-	if (this.isNew && !this.hex) {
-		this.hex = crypto.device();
+	try {
+		// Generate hex if not already set (for new documents)
+		if (this.isNew && !this.hex) {
+			this.hex = crypto.device();
+		}
+		
+		if (this.isModified() && !this.isNew) {
+			this.updatedAt = new Date();
+		}
+		next();
+	} catch (error) {
+		next(error);
 	}
-	
-	if (this.isModified() && !this.isNew) {
-		this.updatedAt = new Date();
-	}
-	next();
 });
 
 device.pre('findOneAndUpdate', function() {
