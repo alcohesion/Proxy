@@ -6,7 +6,8 @@ const app = {
 
 const security = {
 	authToken: process.env.AUTH_TOKEN || 'your-secret-token',
-	allowedOrigins: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['*']
+	allowedOrigins: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['*'],
+	hexKey: process.HEX_ENCRYPTION_KEY || 'default-hex-key',
 };
 
 module.exports = { app, security };

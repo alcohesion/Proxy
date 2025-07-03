@@ -17,14 +17,10 @@ echo "Directories created and permissions set"
 # Initialize MongoDB
 echo "Initializing MongoDB..."
 
-# Ensure log file exists and has proper permissions
-touch /data/logs/mongodb.log
-chmod 644 /data/logs/mongodb.log
-
 if [ ! -f /data/mongodb/.initialized ]; then
     # Start MongoDB temporarily to initialize (using the exact working command)
     echo "Starting MongoDB for initialization..."
-    mongod --dbpath /data/mongodb --logpath /data/logs/mongodb.log --bind_ip 127.0.0.1 --port 27017 --noauth --fork
+    mongod --dbpath /data/mongodb --logpath /dev/stdout --bind_ip 127.0.0.1 --port 27017 --noauth --fork
     
     # Wait for MongoDB to be ready
     echo "Waiting for MongoDB to start..."
@@ -53,7 +49,7 @@ bind 127.0.0.1
 port 6379
 appendonly yes
 dir /data/redis
-logfile /data/logs/redis.log
+logfile ""
 save 900 1
 save 300 10
 save 60 10000
@@ -66,8 +62,6 @@ echo "Redis configured"
 
 # Initialize Redis data directory
 echo "Initializing Redis..."
-touch /data/logs/redis.log
-chmod 644 /data/logs/redis.log
 
 # Test Nginx configuration
 echo "Testing Nginx configuration..."

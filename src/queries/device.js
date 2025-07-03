@@ -1,4 +1,5 @@
 const { Device } = require('../models');
+const { crypto } = require('../utils');
 
 const device = {
 	// Create a new device
@@ -49,6 +50,7 @@ const device = {
 			
 			if (!device) {
 				device = new Device({
+					hex: crypto.generate('RQT'),
 					...deviceInfo,
 					stats: {
 						totalRequests: 1,

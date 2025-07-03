@@ -24,6 +24,9 @@ const gray = '\x1b[90m';
 // Default color for unknown kinds
 const defaultColor = '';
 
+// Check if we should use JSON logging (for production/fly.io)
+const useJsonLogging = process.env.NODE_ENV === 'production' || process.env.FORCE_CONSOLE_OUTPUT === 'true';
+
 /**
  * Format timestamp in readable format
  * @returns {string} Formatted timestamp
@@ -50,11 +53,40 @@ function getColor(kind) {
  * @returns {string} Formatted log message
  */
 function formatMessage(kind, message, additionalData = null) {
-    const timestamp = `${gray}[${getTimestamp()}]${reset}`;
+    const timestamp = new Date().toISOString();
+    
+    // For production/fly.io, use JSON format
+    if (useJsonLogging) {
+        const logEntry = {
+            timestamp,
+            level: kind.toUpperCase(),
+            message: String(message),
+            service: 'proxy-server'
+        };
+        
+        if (additionalData !== null) {
+            if (additionalData instanceof Error) {
+                logEntry.error = {
+                    message: additionalData.message,
+                    stack: additionalData.stack,
+                    name: additionalData.name
+                };
+            } else if (typeof additionalData === 'object') {
+                logEntry.data = additionalData;
+            } else {
+                logEntry.additional = String(additionalData);
+            }
+        }
+        
+        return JSON.stringify(logEntry);
+    }
+    
+    // For development, use colored format
+    const timestampFormatted = `${gray}[${timestamp.replace('T', ' ').slice(0, 19)}]${reset}`;
     const kindColor = getColor(kind);
     const kindLabel = `${kindColor}${kind.toUpperCase()}:${reset}`;
     
-    let formattedMessage = `${timestamp} ${kindLabel} ${message}`;
+    let formattedMessage = `${timestampFormatted} ${kindLabel} ${message}`;
     
     if (additionalData !== null) {
         if (additionalData instanceof Error) {

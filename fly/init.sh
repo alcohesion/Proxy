@@ -30,7 +30,7 @@ bind 127.0.0.1
 port 6379
 appendonly yes
 dir /data/redis
-logfile /data/logs/redis.log
+logfile ""
 save 900 1
 save 300 10
 save 60 10000

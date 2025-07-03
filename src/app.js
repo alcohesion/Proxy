@@ -24,6 +24,14 @@ process.on('unhandledRejection', (reason, promise) => {
 	// Don't exit on unhandled rejections, just log them
 });
 
+// Log startup information
+log.info('Starting Proxy Server application...');
+log.info('Node.js version:', process.version);
+log.info('Platform:', process.platform);
+log.info('Architecture:', process.arch);
+log.info('Environment:', process.env.NODE_ENV);
+log.info('Working directory:', process.cwd());
+
 // Connect to the MongoDB database
 mongoose.connect(uri, options).then(r => {
 	log.mongo('Connected to MongoDB');

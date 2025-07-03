@@ -7,6 +7,9 @@ module.exports = (app, api) => {
 			log.warn('Health check request aborted');
 		});
 		
+		// Log health check for debugging
+		log.health('Health check requested');
+		
 		res.writeHeader('Content-Type', 'application/json');
 		res.end(JSON.stringify({
 			status: 'healthy',

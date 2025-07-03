@@ -11,9 +11,10 @@ HOST = "0.0.0.0"
 # All sensitive secrets are set via fly secrets
 # Non-sensitive configuration can be set here
 LOG_LEVEL = "info"
-LOG_FORMAT = "json"
 METRICS_ENABLED = "true"
 COMPRESSION_ENABLED = "true"
+# Force console output for Fly.io log collection
+FORCE_CONSOLE_OUTPUT = "true"
   
 [http_service]
   internal_port = 80

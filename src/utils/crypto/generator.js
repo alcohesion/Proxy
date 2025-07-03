@@ -1,14 +1,10 @@
 const crypto = require('crypto');
+const { security } = require('../../configs');
 
-/**
- * Generate a unique hex identifier using environment key, timestamp, and prefix
- * @param {string} prefix - The prefix for the hex (e.g., 'RQT', 'DEV', 'MET')
- * @param {string} envKey - Environment key for additional entropy (defaults to AUTH_TOKEN)
- * @returns {string} - Formatted hex string with prefix
- */
-const generateHex = (prefix = 'RQT', envKey = null) => {
-	// Use AUTH_TOKEN as default env key for entropy
-	const key = envKey || process.env.AUTH_TOKEN || 'default-key';
+// Generate a unique hex identifier using environment key, timestamp, and prefix
+const generateHex = (prefix = 'RQT') => {
+	// Use hexKey as default env key for entropy
+	const key = security.hexKey || 'default-key';
 	
 	// Get current timestamp in milliseconds
 	const timestamp = Date.now().toString();
