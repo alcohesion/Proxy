@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { hex } = require('../utils');
+const { crypto } = require('../utils');
 
 // description This schema represents a proxy request in the system
 const request = new mongoose.Schema({
@@ -33,7 +33,7 @@ const request = new mongoose.Schema({
 request.pre('save', function(next) {
 	// Generate hex if not already set (for new documents)
 	if (this.isNew && !this.hex) {
-		this.hex = hex.request();
+		this.hex = crypto.generate('RQT');
 	}
 	
 	if (this.isModified() && !this.isNew) {

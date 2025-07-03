@@ -49,6 +49,9 @@ class ProxyWebSocket {
 				this.authenticatedConnections.add(ws);
 				await connection(ws);
 				
+				// Pass client manager to WebSocket for response handling
+				ws.clientManager = this.client;
+				
 				// Set this WebSocket as the local client after successful connection
 				this.client.setLocalClient(ws);
 				console.log('Local client connected and registered for request forwarding');

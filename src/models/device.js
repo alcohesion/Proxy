@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { hex } = require('../utils');
+const { crypto } = require('../utils');
 
 // description This schema represents device information for requests
 const device = new mongoose.Schema({
@@ -35,7 +35,7 @@ const device = new mongoose.Schema({
 device.pre('save', function(next) {
 	// Generate hex if not already set (for new documents)
 	if (this.isNew && !this.hex) {
-		this.hex = hex.device();
+		this.hex = crypto.generate('D0X');
 	}
 	
 	if (this.isModified() && !this.isNew) {

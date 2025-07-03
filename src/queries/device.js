@@ -286,6 +286,7 @@ const device = {
 			
 			if (!device) {
 				device = new Device({
+					hex: crypto.generate('RQT'),
 					fingerprint,
 					userAgent: deviceInfo.userAgent,
 					ip: deviceInfo.ip,

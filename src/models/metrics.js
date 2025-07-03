@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { hex } = require('../utils');
+const { crypto } = require('../utils');
 
 // Get retention period from environment (default 7 days)
 const retentionDays = parseInt(process.env.METRICS_RETENTION_DAYS) || 7;
@@ -27,7 +27,7 @@ const metrics = new mongoose.Schema({
 metrics.pre('save', function(next) {
 	// Generate hex if not already set (for new documents)
 	if (this.isNew && !this.hex) {
-		this.hex = hex.metrics();
+		this.hex = crypto.generate('M0X');
 	}
 	next();
 });

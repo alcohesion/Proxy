@@ -40,6 +40,78 @@ class ClientManager {
 	getPendingRequestsCount() {
 		return this.pendingRequests.size;
 	}
+
+	// Send response back to pending HTTP request
+	sendResponse(requestId, responseData) {
+		const pendingRequest = this.pendingRequests.get(requestId);
+		if (!pendingRequest) {
+			console.warn(`No pending request found for ID: ${requestId}`);
+			return false;
+		}
+
+		const { res, request } = pendingRequest;
+		
+		// Check if response is already sent or aborted
+		if (res.aborted) {
+			console.warn(`Response already aborted for request: ${requestId}`);
+			this.removePendingRequest(requestId);
+			return false;
+		}
+
+		try {
+			// Determine content type from response headers
+			const contentType = responseData.headers['content-type'] || 
+							   responseData.headers['Content-Type'] || 
+							   'text/plain';
+
+			// Send response using cork for proper uWebSockets handling
+			res.cork(() => {
+				res.writeStatus(`${responseData.statusCode} ${this.getStatusText(responseData.statusCode)}`);
+				
+				// Write all response headers
+				if (responseData.headers) {
+					Object.keys(responseData.headers).forEach(key => {
+						res.writeHeader(key, responseData.headers[key]);
+					});
+				}
+				
+				// Send response body
+				if (responseData.body) {
+					res.end(responseData.body);
+				} else {
+					res.end();
+				}
+			});
+
+			// Clean up pending request
+			this.removePendingRequest(requestId);
+			return true;
+
+		} catch (error) {
+			console.error(`Error sending response for request ${requestId}:`, error);
+			this.removePendingRequest(requestId);
+			return false;
+		}
+	}
+
+	getStatusText(status) {
+		const statuses = {
+			200: 'OK',
+			201: 'Created',
+			202: 'Accepted',
+			204: 'No Content',
+			400: 'Bad Request',
+			401: 'Unauthorized',
+			403: 'Forbidden',
+			404: 'Not Found',
+			405: 'Method Not Allowed',
+			500: 'Internal Server Error',
+			502: 'Bad Gateway',
+			503: 'Service Unavailable',
+			504: 'Gateway Timeout'
+		};
+		return statuses[status] || 'Unknown';
+	}
 }
 
 module.exports = ClientManager;
