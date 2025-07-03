@@ -105,7 +105,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 # Get your SSH private key content
 cat ~/.ssh/id_rsa
-# Copy the ENTIRE output including -----BEGIN/END----- lines
+# Copy the ENTIRE output including -----BEGIN/END-----
 ```
 
 ### SSH Key Setup
