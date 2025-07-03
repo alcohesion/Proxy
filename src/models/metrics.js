@@ -27,7 +27,7 @@ const metrics = new mongoose.Schema({
 metrics.pre('save', function(next) {
 	// Generate hex if not already set (for new documents)
 	if (this.isNew && !this.hex) {
-		this.hex = crypto.generate('M0X');
+		this.hex = crypto.metrics();
 	}
 	next();
 });

@@ -33,7 +33,7 @@ const request = new mongoose.Schema({
 request.pre('save', function(next) {
 	// Generate hex if not already set (for new documents)
 	if (this.isNew && !this.hex) {
-		this.hex = crypto.generate('RQT');
+		this.hex = crypto.request();
 	}
 	
 	if (this.isModified() && !this.isNew) {
