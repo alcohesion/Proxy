@@ -1,8 +1,8 @@
 const http = require('http');
 const https = require('https');
-const { proxy } = require('../../../configs');
+const { proxy } = require('../../configs');
 
-// Simple HTTP request forwarding function for WebSocket proxy
+// HTTP request forwarding utility for WebSocket proxy
 const forward = async ({ method, path, headers, body }) => {
 	return new Promise((resolve, reject) => {
 		const options = {

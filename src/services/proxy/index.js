@@ -1,9 +1,6 @@
 const handlers = require('./handlers');
 
-module.exports = (app, api) => {
+module.exports = (app, client) => {
 	// Initialize proxy request handler
-	handlers.request(app, api);
+	handlers(app, client);
 };
-
-// Export handlers for use by WebSocket endpoints
-module.exports.handlers = handlers;

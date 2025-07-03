@@ -2,7 +2,7 @@ const { metricsQueue } = require('./queues');
 const log = require('../../logging');
 const { Metrics } = require('../../models');
 const { metrics: metricsQuery } = require('../../queries');
-const { broadcastToMetrics } = require('../../services/metrics/websocket');
+const { metrics: { broadcastToMetrics } } = require('../../utils');
 
 const MetricsWorker = () => {
 	// Check if queue is available before setting up worker

@@ -1,4 +1,4 @@
-const { handlers: { websocket: forwardRequest } } = require('../../../services/proxy');
+const { http: { forward: forwardRequest } } = require('../../../utils');
 const { device: deviceQueries, request: requestQueries } = require('../../../queries');
 
 // Message handler for proxy WebSocket

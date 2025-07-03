@@ -3,8 +3,9 @@ const { auth, connection, message } = require('./handlers');
 
 // Main proxy WebSocket endpoint
 class ProxyWebSocket {
-	constructor(app) {
+	constructor(app, client) {
 		this.app = app;
+		this.client = client;
 		this.connections = new Map();
 		this.authenticatedConnections = new Set();
 		this.init(app);
@@ -44,14 +45,13 @@ class ProxyWebSocket {
 			
 			open: async (ws) => {
 				// Authenticate first
-				if (!auth(ws, ws.token)) {
-					return;
-				}
-				
+				if (!auth(ws, ws.token)) return;
 				this.authenticatedConnections.add(ws);
-				
-				// Handle connection setup
 				await connection(ws);
+				
+				// Set this WebSocket as the local client after successful connection
+				this.client.setLocalClient(ws);
+				console.log('Local client connected and registered for request forwarding');
 			},
 			
 			message: async (ws, messageData, isBinary) => {
@@ -61,6 +61,10 @@ class ProxyWebSocket {
 			close: (ws, code, message) => {
 				console.log('Proxy WebSocket connection closed');
 				this.authenticatedConnections.delete(ws);
+				
+				// Unset local client when connection closes
+				this.client.clearLocalClient();
+				console.log('Local client disconnected');
 			},
 			
 			drain: (ws) => {

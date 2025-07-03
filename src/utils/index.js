@@ -1,5 +1,11 @@
-const crypto = require('./crypto/generator');
+const crypto = require('./crypto');
+const ClientManager = require('./client');
+const http = require('./http');
+const metrics = require('./metrics');
 
 module.exports = {
-	crypto
+	crypto,
+	ClientManager,
+	http,
+	metrics
 };

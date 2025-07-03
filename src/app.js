@@ -7,6 +7,7 @@ const { mongo: { uri, options }, app: { host, port } } = require('./configs');
 const services = require('./services');
 const { ProxyWebSocket, MetricsWebSocket } = require('./wss');
 const { bull: { RequestWorker, MetricsWorker } } = require('./queues');
+const { ClientManager, metrics: { setMetricsWebSocket } } = require('./utils');
 
 // Global error handlers
 process.on('uncaughtException', (error) => {
@@ -36,6 +37,9 @@ mongoose.connection.on('error', (err) => log.mongo('Mongoose connection error:',
 mongoose.connection.on('disconnected', () => log.mongo('Mongoose disconnected from MongoDB'));
 mongoose.connection.on('reconnected', () => log.mongo('Mongoose reconnected to MongoDB'));
 
+// Create client manager
+const client = new ClientManager();
+
 // Create the WebSocket server without SSL
 const app = uWs.App()
 	// Listen to the port
@@ -64,8 +68,12 @@ try {
 
 // Initialize WebSocket endpoints with error handling
 try {
-	const proxyWs = new ProxyWebSocket(app);
+	const proxyWs = new ProxyWebSocket(app, client);
 	const metricsWs = new MetricsWebSocket(app);
+	
+	// Set metrics WebSocket instance for broadcasting
+	setMetricsWebSocket(metricsWs);
+	
 	log.wss('WebSocket endpoints initialized');
 } catch (error) {
 	log.wss('Failed to initialize WebSocket endpoints:', error);
@@ -73,7 +81,7 @@ try {
 
 // Register HTTP services (health checks, etc.) with error handling
 try {
-	services(app, '');
+	services(app, client);
 	log.success('HTTP services registered');
 } catch (error) {
 	log.error('Failed to register HTTP services:', error);

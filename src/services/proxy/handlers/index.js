@@ -1,7 +1,5 @@
 const request = require('./request');
-const websocket = require('./websocket');
 
-module.exports = {
-	request,
-	websocket
+module.exports = (app, client) => {
+	request(app, client);
 };

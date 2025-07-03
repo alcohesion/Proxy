@@ -3,8 +3,8 @@ const metrics = require('./metrics');
 const health = require('./health');
 
 // export all services
-module.exports = (app, api) => {
-	proxy(app, api);
-	metrics(app, api);
-	health(app, api);
+module.exports = (app, client) => {
+	proxy(app, client);
+	metrics(app);
+	health(app);
 }

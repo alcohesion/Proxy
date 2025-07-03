@@ -4,9 +4,6 @@ const { request: requestQuery, device: deviceQuery } = require('../../../queries
 const { proxy } = require('../../../configs');
 const { bull: { requestQueue } } = require('../../../queues');
 
-let localClient = null;
-const pendingRequests = new Map();
-
 const getDeviceInfo = (req) => {
 	const ip = req.getHeader('x-forwarded-for') || req.getHeader('x-real-ip') || 'unknown';
 	const userAgent = req.getHeader('user-agent') || null;
@@ -56,7 +53,7 @@ const createRequest = async (req, device) => {
 	}
 };
 
-module.exports = (app, api) => {
+module.exports = (app, client) => {
 	// Handle all HTTP requests for forwarding
 	app.any('/*', async (res, req) => {
 		// Skip health and metrics endpoints - they have their own handlers
@@ -74,7 +71,7 @@ module.exports = (app, api) => {
 		const device = await createOrUpdateDevice(deviceInfo);
 		const request = await createRequest(req, device);
 
-		if (!localClient) {
+		if (!client.isClientConnected()) {
 			if (!aborted) {
 				res.writeStatus('502 Bad Gateway');
 				res.writeHeader('Content-Type', 'application/json');
@@ -103,7 +100,7 @@ module.exports = (app, api) => {
 		}
 
 		// Store response object
-		pendingRequests.set(request.hex, { res, request, startTime: Date.now() });
+		client.addPendingRequest(request.hex, { res, request, startTime: Date.now() });
 
 		// Read request body
 		let body = '';
@@ -132,7 +129,7 @@ module.exports = (app, api) => {
 		});
 
 		res.onAborted(async () => {
-			pendingRequests.delete(request.hex);
+			client.removePendingRequest(request.hex);
 			if (request) {
 				try {
 					await requestQuery.updateStatus(request.hex, 'error', 'Request aborted');
@@ -144,10 +141,10 @@ module.exports = (app, api) => {
 
 		// Set timeout
 		setTimeout(async () => {
-			if (pendingRequests.has(request.hex)) {
-				const { res, request: req } = pendingRequests.get(request.hex);
-				pendingRequests.delete(request.hex);
-				
+			if (client.hasPendingRequest(request.hex)) {
+				const { res, request: req } = client.getPendingRequest(request.hex);
+				client.removePendingRequest(request.hex);
+
 				if (!res.aborted) {
 					res.writeStatus('504 Gateway Timeout');
 					res.writeHeader('Content-Type', 'application/json');
@@ -168,7 +165,3 @@ module.exports = (app, api) => {
 		}, proxy.timeout);
 	});
 };
-
-// Export for use in websocket handler
-module.exports.pendingRequests = pendingRequests;
-module.exports.setLocalClient = (client) => { localClient = client; };
