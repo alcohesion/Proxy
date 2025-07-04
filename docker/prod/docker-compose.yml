@@ -36,7 +36,7 @@ services:
     environment:
       - DOMAIN=${DOMAIN}
       - SSL_EMAIL=${SSL_EMAIL}
-    command: certonly --webroot --webroot-path=/var/www/certbot --email ${SSL_EMAIL} --agree-tos --no-eff-email -d ${DOMAIN} -d www.${DOMAIN}
+    command: certonly --webroot --webroot-path=/var/www/certbot --email ${SSL_EMAIL} --agree-tos --no-eff-email -d ${DOMAIN}
     depends_on:
       - nginx
 

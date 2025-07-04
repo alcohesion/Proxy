@@ -91,7 +91,7 @@ jobs:
         DEVICE_CACHE_TTL=7200
 
         # Security Headers & Rate Limiting
-        CORS_ORIGINS=https://${{ secrets.DOMAIN }},https://www.${{ secrets.DOMAIN }}
+        CORS_ORIGINS=https://${{ secrets.DOMAIN }}
         RATE_LIMIT_WINDOW=900000
         RATE_LIMIT_MAX_REQUESTS=200
         MAX_CONNECTIONS=2000
