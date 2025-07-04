@@ -20,8 +20,7 @@ docker/
 ├── Dockerfile              # Common application image
 ├── redis.conf              # Common Redis configuration
 ├── init.sh                 # Common initialization script
-├── manage.sh               # Environment switcher script (alternative)
-├── Makefile                # Main Makefile with --dev/--prod flags
+├── Makefile                # Main Makefile with environment-specific targets
 └── README.md               # This file
 ```
 
@@ -49,6 +48,8 @@ Both environments use a multi-container architecture:
 cd docker
 make setup-env        # Create environment files
 make start            # Start development (default)
+# or use explicit command:
+make dev-start        # Start development environment
 ```
 Access: http://localhost
 
@@ -57,9 +58,9 @@ Access: http://localhost
 cd docker
 make setup-env        # Create environment files
 # Edit prod/.env with your domain and strong passwords
-make start --prod     # Start production
-make ssl-setup --prod # Setup SSL certificates  
-make restart --prod   # Restart with SSL
+make prod-start       # Start production
+ENV=prod make ssl-setup  # Setup SSL certificates  
+make prod-restart     # Restart with SSL
 ```
 Access: https://yourdomain.com
 
@@ -76,49 +77,76 @@ Access: https://yourdomain.com
 
 ## Commands
 
-### Main Makefile Commands
+### Command Reference
 
-The main Makefile uses environment flags for clean syntax:
+| Command | Description | Environment |
+|---------|-------------|-------------|
+| **Direct Commands (default to development)** |
+| `make start` | Start development environment | dev |
+| `make stop` | Stop development environment | dev |
+| `make restart` | Restart development environment | dev |
+| `make logs` | View development logs | dev |
+| `make status` | Check development status | dev |
+| `make rebuild` | Rebuild development services | dev |
+| `make clean` | Clean development environment | dev |
+| `make shell` | Open shell in development app | dev |
+| **Development-Specific Commands** |
+| `make dev-start` | Start development environment | dev |
+| `make dev-stop` | Stop development environment | dev |
+| `make dev-restart` | Restart development environment | dev |
+| `make dev-logs` | View development logs | dev |
+| `make dev-status` | Check development status | dev |
+| `make dev-rebuild` | Rebuild development services | dev |
+| `make dev-clean` | Clean development environment | dev |
+| `make dev-shell` | Open shell in development app | dev |
+| **Production-Specific Commands** |
+| `make prod-start` | Start production environment | prod |
+| `make prod-stop` | Stop production environment | prod |
+| `make prod-restart` | Restart production environment | prod |
+| `make prod-logs` | View production logs | prod |
+| `make prod-status` | Check production status | prod |
+| `make prod-rebuild` | Rebuild production services | prod |
+| `make prod-clean` | Clean production environment | prod |
+| `make prod-shell` | Open shell in production app | prod |
+| **SSL Management (production only)** |
+| `ENV=prod make ssl-setup` | Setup SSL certificates with Let's Encrypt | prod |
+| `ENV=prod make ssl-renew` | Renew SSL certificates | prod |
+| **Environment Setup** |
+| `make setup-env` | Create .env files from templates | both |
+| `make check-env` | Check if .env files exist | both |
+| `make status-all` | Show status of both environments | both |
+| `make clean-all` | Clean both environments (with confirmation) | both |
+
+> **Tip:** Run `make help` to see all available commands with descriptions.
+
+### Usage Examples
 
 ```bash
-# Development (default)
-make start              # Start development environment
-make stop               # Stop development environment  
-make logs               # View development logs
-make status             # Check development status
-make restart            # Restart development
-make clean              # Clean development environment
-make shell              # Open shell in development app
+# Development workflow
+make setup-env           # Create environment files
+make start               # Start development (default)
+make status              # Check status  
+make logs                # View logs
+make dev-restart         # Restart development
 
-# Production (with --prod flag)
-make start --prod       # Start production environment
-make stop --prod        # Stop production environment
-make logs --prod        # View production logs  
-make status --prod      # Check production status
-make restart --prod     # Restart production
-make clean --prod       # Clean production environment
-make shell --prod       # Open shell in production app
+# Production workflow
+make setup-env           # Create environment files  
+# Edit prod/.env with your domain and passwords
+make prod-start          # Start production
+ENV=prod make ssl-setup  # Setup SSL certificates
+make prod-restart        # Restart with SSL
+make prod-status         # Check production status
 
-# SSL Management (production only)
-make ssl-setup --prod   # Setup SSL certificates with Let's Encrypt
-make ssl-renew --prod   # Renew SSL certificates
+# Environment management
+make status-all          # Check both environments
+make dev-stop            # Stop development only
+make prod-logs           # View production logs only
+ENV=prod make ssl-renew  # Renew SSL certificates
 
-# Environment Setup
-make setup-env          # Create .env files from templates
-make check-env          # Check if .env files exist
-make status-all         # Show status of both environments
-make clean-all          # Clean both environments (with confirmation)
-```
-
-### Alternative: Environment Switcher Script
-
-You can also use the `manage.sh` script for explicit environment management:
-
-```bash
-./manage.sh start dev         # Start development
-./manage.sh start prod        # Start production  
-./manage.sh ssl-setup         # Setup SSL for production
-./manage.sh logs dev          # View development logs
+# Maintenance
+make dev-rebuild         # Rebuild development
+make prod-clean          # Clean production data
+make clean-all           # Clean everything (dangerous!)
 ```
 
 ## SSL Certificate Setup
@@ -127,13 +155,13 @@ For production environments, SSL certificates are managed automatically:
 
 ### Automatic Setup (Let's Encrypt)
 1. Edit `prod/.env` with your domain and email
-2. Run `make ssl-setup --prod`
-3. Restart: `make restart --prod`
+2. Run `ENV=prod make ssl-setup`
+3. Restart: `make prod-restart`
 
 ### Certificate Renewal
 SSL certificates auto-renew. For manual renewal:
 ```bash
-make ssl-renew --prod
+ENV=prod make ssl-renew
 ```
 
 ## Configuration Files
@@ -164,15 +192,15 @@ make setup-env    # Create missing files from templates
 # Ensure domain points to your server
 # Check DNS with: dig yourdomain.com  
 # Verify ports 80/443 are open
-make ssl-setup --prod
+ENV=prod make ssl-setup
 ```
 
 **Services won't start:**
 ```bash
-make status --dev     # Check development status
-make status --prod    # Check production status
-make logs --dev       # View development logs
-make logs --prod      # View production logs
+make dev-status       # Check development status
+make prod-status      # Check production status
+make dev-logs         # View development logs
+make prod-logs        # View production logs
 ```
 
 ### Accessing Services

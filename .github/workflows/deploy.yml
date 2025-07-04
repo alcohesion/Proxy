@@ -24,11 +24,11 @@ jobs:
       run: |
         ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
         
-    - name: Create environment file from secrets
+    - name: Create production environment file from secrets
       run: |
-        cat > docker/.env << EOF
+        cat > docker/prod/.env << EOF
         # ===========================================
-        # PROXY SERVER ENVIRONMENT CONFIGURATION
+        # PRODUCTION ENVIRONMENT CONFIGURATION
         # ===========================================
 
         # Server Configuration
@@ -36,31 +36,33 @@ jobs:
         PORT=8080
         NODE_ENV=production
 
-        # Security - CHANGE THIS TO A STRONG SECRET!
+        # Security - CHANGE THESE TO STRONG SECRETS!
         # Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
         AUTH_TOKEN=${{ secrets.AUTH_TOKEN }}
-
-        # Hex Encryption Key - Generate with: node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"
         HEX_ENCRYPTION_KEY=${{ secrets.HEX_ENCRYPTION_KEY }}
 
-        # CORS Configuration
-        # Use * for all origins or specify comma-separated domains
-        ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS || '*' }}
+        # Domain Configuration
+        DOMAIN=${{ secrets.DOMAIN }}
+        SSL_EMAIL=${{ secrets.SSL_EMAIL }}
 
-        # MongoDB Configuration - Docker deployment
-        MONGODB_URI=mongodb://mongo:27017/proxy
-        MONGO_URI=mongodb://mongo:27017/proxy
-        MONGO_MAX_POOL_SIZE=10
+        # CORS Configuration
+        ALLOWED_ORIGINS=*
+
+        # MongoDB Configuration - Production with auth
+        MONGO_ROOT_PASSWORD=${{ secrets.MONGO_ROOT_PASSWORD }}
+        MONGO_PASSWORD=${{ secrets.MONGO_PASSWORD }}
+        MONGODB_URI=mongodb://proxy_user:\${MONGO_PASSWORD}@mongo:27017/proxy?authSource=proxy
+        MONGO_URI=mongodb://proxy_user:\${MONGO_PASSWORD}@mongo:27017/proxy?authSource=proxy
+        MONGO_MAX_POOL_SIZE=20
         MONGO_SERVER_SELECTION_TIMEOUT=5000
         MONGO_SOCKET_TIMEOUT=45000
-        # Advanced MongoDB options
         MONGO_OPTIONS_STRING=retryWrites=true&w=majority
 
-        # Redis Configuration - Docker deployment
+        # Redis Configuration - Production with auth
         REDIS_HOST=redis
         REDIS_PORT=6379
-        REDIS_PASSWORD=
-        REDIS_URL=redis://redis:6379
+        REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+        REDIS_URL=redis://:\${REDIS_PASSWORD}@redis:6379
         REDIS_DB=0
         REDIS_MAX_RETRIES=3
 
@@ -71,7 +73,7 @@ jobs:
 
         # Metrics Configuration
         METRICS_ENABLED=true
-        METRICS_RETENTION_DAYS=7
+        METRICS_RETENTION_DAYS=30
 
         # WebSocket Configuration
         WS_MAX_COMPRESSED_SIZE=65536
@@ -81,30 +83,34 @@ jobs:
         # Logging Configuration
         LOG_LEVEL=info
         LOG_FORMAT=json
-        FORCE_CONSOLE_OUTPUT=true
+        FORCE_CONSOLE_OUTPUT=false
 
         # Performance Configuration
-        MAX_CONCURRENT_REQUESTS=1000
-        REQUEST_RATE_LIMIT=100
-        DEVICE_CACHE_TTL=3600
+        MAX_CONCURRENT_REQUESTS=2000
+        REQUEST_RATE_LIMIT=200
+        DEVICE_CACHE_TTL=7200
 
         # Security Headers & Rate Limiting
-        CORS_ORIGINS=*
+        CORS_ORIGINS=https://${{ secrets.DOMAIN }},https://www.${{ secrets.DOMAIN }}
         RATE_LIMIT_WINDOW=900000
-        RATE_LIMIT_MAX_REQUESTS=100
-        MAX_CONNECTIONS=1000
+        RATE_LIMIT_MAX_REQUESTS=200
+        MAX_CONNECTIONS=2000
 
-        # Development Configuration
+        # Production Configuration
         DEBUG_MODE=false
         MOCK_RESPONSES=false
         SIMULATE_LATENCY=0
+
+        # SSL Configuration
+        SSL_CERT_PATH=/etc/nginx/ssl/cert.pem
+        SSL_KEY_PATH=/etc/nginx/ssl/key.pem
         EOF
         
-    - name: Copy environment file to server
+    - name: Copy production environment file to server
       run: |
-        scp docker/.env ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:~/apps/Proxy/docker/.env
+        scp docker/prod/.env ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:~/apps/Proxy/docker/prod/.env
         
-    - name: Deploy to server
+    - name: Deploy to production server
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
           # Navigate to the apps directory
@@ -117,17 +123,32 @@ jobs:
           cd docker
           
           # Stop existing containers
-          make stop || true
+          make prod-stop || true
           
-          # Start the application using make
-          make start
+          # Start the production application
+          make prod-start
         EOF
         
-    - name: Verify deployment
+    - name: Setup SSL certificates (if domain configured)
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
           cd apps/Proxy/docker
-          echo "Waiting for services to start..."
+          # Only setup SSL if domain is configured and not localhost
+          if [ "${{ secrets.DOMAIN }}" != "" ] && [ "${{ secrets.DOMAIN }}" != "localhost" ]; then
+            echo "Setting up SSL certificates for ${{ secrets.DOMAIN }}..."
+            ENV=prod make ssl-setup || echo "SSL setup failed or already configured"
+            sleep 10
+            make prod-restart
+          else
+            echo "No domain configured or localhost detected, skipping SSL setup"
+          fi
+        EOF
+        
+    - name: Verify production deployment
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+          cd apps/Proxy/docker
+          echo "Waiting for production services to start..."
           sleep 30
-          make status
+          make prod-status
         EOF

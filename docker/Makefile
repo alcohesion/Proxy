@@ -3,44 +3,41 @@
 
 # Environment variables
 ENV ?= dev
-ifeq ($(filter --prod,$(MAKECMDGOALS)),--prod)
-	ENV = prod
-endif
-ifeq ($(filter --dev,$(MAKECMDGOALS)),--dev)
-	ENV = dev
-endif
-
-# Remove flags from goals
-REAL_GOALS := $(filter-out --prod --dev,$(MAKECMDGOALS))
 
 .PHONY: help start stop restart logs status rebuild clean shell ssl-setup ssl-renew
-.PHONY: check-env setup-env status-all clean-all --prod --dev
-
-# Dummy targets for flags
---prod:
-	@:
---dev:
-	@:
+.PHONY: check-env setup-env status-all clean-all
+.PHONY: dev-start dev-stop dev-restart dev-logs dev-status dev-rebuild dev-clean dev-shell
+.PHONY: prod-start prod-stop prod-restart prod-logs prod-status prod-rebuild prod-clean prod-shell
 
 # Default target
 help:
 	@echo "Docker Environment Manager"
 	@echo ""
-	@echo "Usage: make [COMMAND] [--dev|--prod]"
+	@echo "Usage: make [COMMAND] or make [ENV]-[COMMAND]"
 	@echo ""
-	@echo "Commands:"
-	@echo "  make start [--dev|--prod]    - Start environment (default: dev)"
-	@echo "  make stop [--dev|--prod]     - Stop environment"
-	@echo "  make restart [--dev|--prod]  - Restart environment"
-	@echo "  make logs [--dev|--prod]     - View logs"
-	@echo "  make status [--dev|--prod]   - Check status"
-	@echo "  make rebuild [--dev|--prod]  - Rebuild services"
-	@echo "  make clean [--dev|--prod]    - Clean environment"
-	@echo "  make shell [--dev|--prod]    - Open shell in app container"
+	@echo "Direct Commands (default: dev):"
+	@echo "  make start                   - Start development environment"
+	@echo "  make stop                    - Stop development environment" 
+	@echo "  make restart                 - Restart development environment"
+	@echo "  make logs                    - View development logs"
+	@echo "  make status                  - Check development status"
+	@echo "  make rebuild                 - Rebuild development services"
+	@echo "  make clean                   - Clean development environment"
+	@echo "  make shell                   - Open shell in development app container"
+	@echo ""
+	@echo "Environment-Specific Commands:"
+	@echo "  make dev-start               - Start development environment"
+	@echo "  make dev-stop                - Stop development environment"
+	@echo "  make dev-status              - Check development status"
+	@echo "  make dev-logs                - View development logs"
+	@echo "  make prod-start              - Start production environment"
+	@echo "  make prod-stop               - Stop production environment"
+	@echo "  make prod-status             - Check production status"
+	@echo "  make prod-logs               - View production logs"
 	@echo ""
 	@echo "SSL Management (production only):"
-	@echo "  make ssl-setup               - Setup SSL certificates"
-	@echo "  make ssl-renew               - Renew SSL certificates"
+	@echo "  make ssl-setup               - Setup SSL certificates (production)"
+	@echo "  make ssl-renew               - Renew SSL certificates (production)"
 	@echo ""
 	@echo "Setup Commands:"
 	@echo "  make check-env               - Check environment file status"
@@ -50,74 +47,112 @@ help:
 	@echo ""
 	@echo "Examples:"
 	@echo "  make start                   - Start development environment"
-	@echo "  make start --prod            - Start production environment"
-	@echo "  make logs --dev              - View development logs"
-	@echo "  make restart --prod          - Restart production environment"
+	@echo "  make prod-start              - Start production environment"
+	@echo "  make dev-logs                - View development logs"
+	@echo "  make prod-restart            - Restart production environment"
+	@echo "  ENV=prod make status         - Alternative syntax for production"
 
 # Environment commands
 start:
 	@echo "Starting $(ENV) environment..."
-	@cd $(ENV) && $(MAKE) start
+	@cd $(ENV) && docker compose up -d
 
 stop:
 	@echo "Stopping $(ENV) environment..."
-	@cd $(ENV) && $(MAKE) stop
+	@cd $(ENV) && docker compose down
 
 restart:
 	@echo "Restarting $(ENV) environment..."
-	@cd $(ENV) && $(MAKE) restart
+	@cd $(ENV) && docker compose restart
 
 logs:
 	@echo "Showing $(ENV) logs..."
-	@cd $(ENV) && $(MAKE) logs
+	@cd $(ENV) && docker compose logs -f
 
 status:
 	@echo "Checking $(ENV) status..."
-	@cd $(ENV) && $(MAKE) status
+	@cd $(ENV) && docker compose ps
 
 rebuild:
 	@echo "Rebuilding $(ENV) environment..."
-	@cd $(ENV) && $(MAKE) rebuild
+	@cd $(ENV) && docker compose down && docker compose build --no-cache && docker compose up -d
 
 clean:
 	@echo "Cleaning $(ENV) environment..."
-	@cd $(ENV) && $(MAKE) clean
+	@cd $(ENV) && docker compose down -v --remove-orphans
 
 shell:
 	@echo "Opening $(ENV) shell..."
-	@cd $(ENV) && $(MAKE) shell
+	@cd $(ENV) && docker compose exec app /bin/sh
+
+# Development environment specific commands
+dev-start:
+	@$(MAKE) ENV=dev start
+
+dev-stop:
+	@$(MAKE) ENV=dev stop
+
+dev-restart:
+	@$(MAKE) ENV=dev restart
+
+dev-logs:
+	@$(MAKE) ENV=dev logs
+
+dev-status:
+	@$(MAKE) ENV=dev status
+
+dev-rebuild:
+	@$(MAKE) ENV=dev rebuild
+
+dev-clean:
+	@$(MAKE) ENV=dev clean
+
+dev-shell:
+	@$(MAKE) ENV=dev shell
+
+# Production environment specific commands
+prod-start:
+	@$(MAKE) ENV=prod start
+
+prod-stop:
+	@$(MAKE) ENV=prod stop
+
+prod-restart:
+	@$(MAKE) ENV=prod restart
+
+prod-logs:
+	@$(MAKE) ENV=prod logs
+
+prod-status:
+	@$(MAKE) ENV=prod status
+
+prod-rebuild:
+	@$(MAKE) ENV=prod rebuild
+
+prod-clean:
+	@$(MAKE) ENV=prod clean
+
+prod-shell:
+	@$(MAKE) ENV=prod shell
 
 # SSL management (production only)
 ssl-setup:
 	@if [ "$(ENV)" != "prod" ]; then \
 		echo "SSL setup is only available for production environment"; \
-		echo "Use: make ssl-setup --prod"; \
+		echo "Use: make prod-start && ENV=prod make ssl-setup"; \
 		exit 1; \
 	fi
 	@echo "Setting up SSL certificates for production..."
-	@cd prod && $(MAKE) ssl-setup
+	@cd prod && docker compose run --rm certbot
 
 ssl-renew:
 	@if [ "$(ENV)" != "prod" ]; then \
 		echo "SSL renewal is only available for production environment"; \
-		echo "Use: make ssl-renew --prod"; \
+		echo "Use: ENV=prod make ssl-renew"; \
 		exit 1; \
 	fi
 	@echo "Renewing SSL certificates for production..."
-	@cd prod && $(MAKE) ssl-renew
-
-# Quick commands (default to development for convenience)
-start: dev-start
-
-stop: dev-stop
-
-restart: dev-restart
-
-logs: dev-logs
-
-status: dev-status
-
-clean: dev-clean
+	@cd prod && docker compose run --rm certbot renew && docker compose exec nginx nginx -s reload
 
 # Advanced commands
 check-env:
@@ -152,7 +187,7 @@ setup-env:
 		echo "Creating prod/.env from template..."; \
 		cp prod/.env.example prod/.env; \
 		echo "✓ Created prod/.env"; \
-		echo "⚠️  IMPORTANT: Edit prod/.env with your domain and strong passwords!"; \
+		echo "IMPORTANT: Edit prod/.env with your domain and strong passwords!"; \
 	else \
 		echo "✓ prod/.env already exists"; \
 	fi
@@ -160,14 +195,14 @@ setup-env:
 # Clean everything (both environments)
 clean-all:
 	@echo "Cleaning all environments..."
-	@echo "⚠️  This will remove all containers, volumes, and data from both environments!"
+	@echo "This will remove all containers, volumes, and data from both environments!"
 	@read -p "Are you sure? [y/N] " -n 1 -r; \
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
 		echo ""; \
 		echo "Cleaning development environment..."; \
-		cd dev && $(MAKE) clean; \
+		cd dev && docker compose down -v --remove-orphans; \
 		echo "Cleaning production environment..."; \
-		cd prod && $(MAKE) clean; \
+		cd prod && docker compose down -v --remove-orphans; \
 		echo "✓ All environments cleaned"; \
 	else \
 		echo ""; \
@@ -177,7 +212,7 @@ clean-all:
 # Status of both environments
 status-all:
 	@echo "=== Development Environment Status ==="
-	@cd dev && $(MAKE) status || echo "Development environment not running"
+	@cd dev && docker compose ps || echo "Development environment not running"
 	@echo ""
 	@echo "=== Production Environment Status ==="
-	@cd prod && $(MAKE) status || echo "Production environment not running"
+	@cd prod && docker compose ps || echo "Production environment not running"
