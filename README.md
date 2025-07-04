@@ -38,23 +38,52 @@ src/
     └── bull/              # Bull queue integration
 ```
 
-## Installation
+## Installation & Deployment
+
+### Option 1: Docker Deployment (Recommended for Production)
 
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd Tunnel/Proxy
+   cd Tunnel
+   ```
+
+2. **Development Environment**
+   ```bash
+   cd docker
+   make setup-env        # Create environment files
+   make start            # Start development environment
+   ```
+   Access: http://localhost
+
+3. **Production Environment**
+   ```bash
+   cd docker
+   make setup-env        # Create environment files
+   # Configure GitHub secrets: SSL_CERT, SSL_KEY, SSL_CA_BUNDLE
+   # Deploy via GitHub Actions workflow
+   make prod-start       # Start production (after deployment)
+   ```
+   Access: https://yourdomain.com
+
+### Option 2: Manual Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd Tunnel
    ```
 
 2. **Install dependencies**
    ```bash
+   cd src
    npm install
    ```
 
 3. **Configure environment variables**
    ```bash
-   cp src/.env.example src/.env
-   # Edit src/.env with your configuration
+   cp .env.example .env
+   # Edit .env with your configuration
    ```
 
 4. **Start the server**
@@ -64,7 +93,22 @@ src/
 
 ## Configuration
 
-### Environment Variables
+### Docker Configuration (Recommended)
+
+For Docker deployments, configuration is managed through environment files:
+
+- **Development**: `docker/dev/.env` - HTTP-only configuration
+- **Production**: `docker/prod/.env` - HTTPS with SSL configuration
+
+Key configuration areas:
+- **SSL Certificates**: Managed via GitHub secrets (SSL_CERT, SSL_KEY, SSL_CA_BUNDLE)
+- **Database**: MongoDB with authentication in production
+- **Cache**: Redis with authentication in production
+- **Security**: Token-based authentication and rate limiting
+
+See [docker/README.md](docker/README.md) for complete Docker configuration guide.
+
+### Manual Configuration
 
 Copy `src/.env.example` to `src/.env` and configure the following variables:
 
@@ -89,7 +133,15 @@ HEX_ENCRYPTION_KEY=your-32-char-hex-encryption-key
 
 ### Database Setup
 
-Ensure MongoDB is running and accessible at the configured URI. The application will automatically create the necessary collections and indexes.
+**Docker Deployment (Recommended):**
+- MongoDB and Redis are automatically configured and started with the Docker environment
+- Production includes authentication and security features
+- Data persistence through Docker volumes
+
+**Manual Setup:**
+- Ensure MongoDB is running and accessible at the configured URI
+- Ensure Redis is running for queue processing (optional)
+- The application will automatically create necessary collections and indexes
 
 ## API Endpoints
 

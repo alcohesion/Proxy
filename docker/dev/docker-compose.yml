@@ -36,7 +36,6 @@ services:
         condition: service_healthy
     volumes:
       - app-logs:/app/logs
-      - ../init.sh:/app/init.sh:ro
     networks:
       - proxy-network
     restart: unless-stopped

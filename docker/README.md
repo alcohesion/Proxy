@@ -67,7 +67,7 @@ Access: https://yourdomain.com
 | Feature | Development | Production |
 |---------|-------------|------------|
 | SSL/TLS | No | Yes (GitHub Secrets) |
-| Authentication | No | Yes (MongoDB + Redis) |
+| Authentication | No | No (simplified) |
 | Logging | Debug | Info/Warn |
 | Rate Limiting | Relaxed | Strict |
 | Security Headers | Basic | Full CSP + HSTS |
@@ -252,11 +252,10 @@ docker run --rm -v mongo-data:/data -v $(pwd):/backup alpine tar czf /backup/mon
 - Relaxed security headers
 
 ### Production  
-- MongoDB authentication required
-- Redis authentication required
+- No authentication required on MongoDB and Redis (simplified configuration)
 - HTTPS with strong SSL configuration
 - Security headers and CSP enabled
 - Rate limiting active
 - Production logging only
 
-**Important:** Always change default passwords in `prod/.env` before deployment!
+**Important:** Configure strong AUTH_TOKEN and HEX_ENCRYPTION_KEY in GitHub secrets for application security!

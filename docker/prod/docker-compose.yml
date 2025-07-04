@@ -40,7 +40,6 @@ services:
         condition: service_healthy
     volumes:
       - app-logs:/app/logs
-      - ../init.sh:/app/init.sh:ro
     networks:
       - proxy-network
     restart: unless-stopped
@@ -58,8 +57,6 @@ services:
       - "27017"
     environment:
       - MONGO_INITDB_DATABASE=proxy
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
     volumes:
       - mongo-data:/data/db
       - mongo-config:/data/configdb
@@ -67,7 +64,7 @@ services:
     networks:
       - proxy-network
     restart: unless-stopped
-    command: mongod --dbpath /data/db --logpath /dev/stdout --bind_ip 0.0.0.0 --port 27017 --auth
+    command: mongod --dbpath /data/db --logpath /dev/stdout --bind_ip 0.0.0.0 --port 27017
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 30s
