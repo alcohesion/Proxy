@@ -189,11 +189,35 @@ make setup-env    # Create missing files from templates
 
 **SSL setup fails:**
 ```bash
-# Ensure domain points to your server
-# Check DNS with: dig yourdomain.com  
-# Verify ports 80/443 are open
+# 1. Check if domain points to your server
+dig yourdomain.com  
+nslookup yourdomain.com
+
+# 2. Verify ports 80/443 are open and accessible
+curl -I http://yourdomain.com
+telnet yourdomain.com 80
+
+# 3. Check if nginx is serving the ACME challenge directory
+curl http://yourdomain.com/.well-known/acme-challenge/test
+
+# 4. If rate limited, wait and retry
 ENV=prod make ssl-setup
+
+# 5. Check Let's Encrypt logs for detailed errors
+make prod-logs
+# or directly:
+docker compose -f prod/docker-compose.yml logs certbot
+
+# 6. For testing, use staging environment first
+# Edit docker-compose.yml and add --staging flag to certbot command
 ```
+
+**Rate limiting issues:**
+- Let's Encrypt has a limit of 5 failed authorizations per domain per hour
+- Wait for the rate limit to reset before retrying
+- Use staging environment for testing: add `--staging` to certbot command
+- Check that your domain DNS points to your server IP
+- Ensure ports 80 and 443 are open in your firewall
 
 **Services won't start:**
 ```bash

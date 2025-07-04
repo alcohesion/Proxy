@@ -262,11 +262,13 @@ dump.rdb
 # MongoDB data
 data/
 
-# SSL certificates
+# SSL certificates and Let's Encrypt
 *.pem
 *.key
 *.crt
 *.csr
+letsencrypt/
+certbot/
 
 # Backup files
 *.backup
