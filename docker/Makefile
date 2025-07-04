@@ -236,12 +236,12 @@ status-all:
 
 # No-cache build commands
 dev-build-no-cache:
-	@echo "Rebuilding development environment with no cache..."
-	@cd dev && docker compose down && docker compose build --no-cache && docker compose up -d
+	@echo "Rebuilding development app with no cache..."
+	@cd dev && docker compose build --no-cache app && docker compose up -d
 
 prod-build-no-cache:
-	@echo "Rebuilding production environment with no cache..."
-	@cd prod && docker compose down && docker compose build --no-cache && docker compose up -d
+	@echo "Rebuilding production app with no cache..."
+	@cd prod && docker compose build --no-cache app && docker compose up -d
 
 # Cache cleaning commands
 clean-cache:

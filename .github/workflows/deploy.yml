@@ -162,13 +162,13 @@ jobs:
           cd docker
           make prod-stop || true
           
-          # Clear Docker caches and unused images (but keep base images like mongo/redis)
+          # Clear Docker build caches (but keep base images like mongo/redis)
           echo "Cleaning Docker build caches..."
           make clean-docker-cache || true
           
-          # Remove only application containers and images (keep mongo/redis images)
+          # Remove only the application container and image
           echo "Removing application containers and images..."
-          docker-compose -f prod/docker-compose.yml down --volumes --remove-orphans || true
+          docker-compose -f prod/docker-compose.yml rm -f app || true
           docker images | grep -E "(proxy|tunnel|app)" | awk '{print $3}' | xargs docker rmi -f || true
           
           # Clear Node.js caches in source directory
@@ -195,14 +195,16 @@ jobs:
           cd docker
           rm -rf .dockerignore.bak || true
           
-          # Force rebuild with no cache using BuildKit
-          echo "Starting clean production build with no cache..."
+          # Force rebuild with no cache using BuildKit (only app service)
+          echo "Starting clean production build with no cache (app only)..."
           export DOCKER_BUILDKIT=1
           export BUILDKIT_PROGRESS=plain
-          make prod-build-no-cache
+          cd prod
+          docker compose build --no-cache app
           
-          # Start the production application
-          make prod-start
+          # Start all production services
+          echo "Starting production services..."
+          docker compose up -d
         EOF
         
     - name: Verify production deployment
