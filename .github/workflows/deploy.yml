@@ -135,10 +135,25 @@ jobs:
           cd apps/Proxy/docker
           # Only setup SSL if domain is configured and not localhost
           if [ "${{ secrets.DOMAIN }}" != "" ] && [ "${{ secrets.DOMAIN }}" != "localhost" ]; then
-            echo "Setting up SSL certificates for ${{ secrets.DOMAIN }}..."
-            ENV=prod make ssl-setup || echo "SSL setup failed or already configured"
-            sleep 10
-            make prod-restart
+            echo "Checking SSL certificates for ${{ secrets.DOMAIN }}..."
+            # Check if SSL certificates already exist by trying to list them
+            SSL_CHECK=$(docker compose -f prod/docker-compose.yml run --rm --entrypoint="ls" certbot /etc/letsencrypt/live/${{ secrets.DOMAIN }}/fullchain.pem 2>/dev/null || echo "NOTFOUND")
+            
+            if [ "$SSL_CHECK" = "NOTFOUND" ]; then
+              echo "No existing SSL certificates found. Setting up SSL certificates for ${{ secrets.DOMAIN }}..."
+              ENV=prod make ssl-setup
+              SSL_RESULT=$?
+              if [ $SSL_RESULT -eq 0 ]; then
+                echo "SSL setup successful, restarting services..."
+                sleep 10
+                make prod-restart
+              else
+                echo "SSL setup failed (exit code: $SSL_RESULT) - may be rate limited or domain not accessible"
+                echo "Continuing without SSL restart"
+              fi
+            else
+              echo "SSL certificates already exist for ${{ secrets.DOMAIN }}, skipping SSL setup"
+            fi
           else
             echo "No domain configured or localhost detected, skipping SSL setup"
           fi
