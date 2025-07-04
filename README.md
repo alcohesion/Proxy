@@ -136,8 +136,8 @@ src/
    ```bash
    cd docker
    make setup-env        # Create environment files
-   # Configure GitHub secrets: SSL_CERT, SSL_KEY, SSL_CA_BUNDLE
-   # Deploy via GitHub Actions workflow
+   # Configure GitHub secrets: SSL_CERT, SSL_KEY, SSL_CA_BUNDLE, etc.
+   # Deploy via GitHub Actions workflow (includes smart cache management)
    make prod-start       # Start production (after deployment)
    make prod-logs        # View production logs
    make prod-status      # Check production status
@@ -146,20 +146,21 @@ src/
 
 ### Docker Build Commands
 
-The project supports no-cache builds to ensure fresh deployments:
+The project supports intelligent cache management for faster, more efficient deployments:
 
 ```bash
 # Development with no cache
 make dev-build-no-cache   # Rebuild development without cache
 make dev-clean           # Clean development environment
 
-# Production with no cache
+# Production with no cache  
 make prod-build-no-cache  # Rebuild production without cache
 make prod-clean          # Clean production environment
 
-# Cache management
-make clean-cache         # Clean all Docker caches
-make clean-docker-cache  # Clean Docker system cache
+# Smart cache management (preserves MongoDB/Redis/Nginx images for faster deployments)
+make clean-app-only      # Clean only application containers/images (ultra-safe)
+make clean-cache         # Clean application caches (preserve base images)
+make clean-docker-cache  # Clean Docker cache (preserve base images)
 make status-all          # Check status of both environments
 ```
 

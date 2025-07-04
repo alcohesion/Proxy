@@ -135,8 +135,10 @@ Access: https://yourdomain.com
 | **No-Cache Build Commands** |
 | `make dev-build-no-cache` | Rebuild development without cache | dev |
 | `make prod-build-no-cache` | Rebuild production without cache | prod |
-| `make clean-cache` | Clean all Docker caches | both |
-| `make clean-docker-cache` | Clean Docker system cache | both |
+| **Cache Management Commands** |
+| `make clean-cache` | Clean application Docker caches (preserve base images) | both |
+| `make clean-docker-cache` | Clean Docker system cache (preserve base images) | both |
+| `make clean-app-only` | Clean only application containers/images (ultra-safe) | both |
 | **Environment Setup** |
 | `make setup-env` | Create .env files from templates | both |
 | `make check-env` | Check if .env files exist | both |
@@ -191,40 +193,61 @@ The project includes comprehensive no-cache build support to ensure fresh deploy
 
 ### Automatic Deployment (GitHub Actions)
 
-The deployment workflow automatically performs cache clearing:
+The deployment workflow automatically performs smart cache clearing:
 
 1. **Code Checkout** - Fresh repository checkout
-2. **Cache Clearing** - Clears all Docker, Node.js, and application caches
-3. **Container Cleanup** - Removes all existing containers and images
+2. **Smart Cache Clearing** - Removes only application caches (preserves MongoDB/Redis/Nginx images)
+3. **Container Cleanup** - Removes only application containers and images
 4. **Fresh Build** - Forces Docker build with `--no-cache` flag
 5. **Clean Start** - Starts services with fresh code and dependencies
+
+### Smart Cache Management
+
+The system uses intelligent cache cleaning to optimize deployment speed:
+
+- **Preserves Base Images** - MongoDB, Redis, and Nginx images are never removed
+- **Application-Only Cleaning** - Only removes application containers and images
+- **Selective Volume Management** - Database volumes are preserved during deployments
+- **Build Cache Optimization** - Clears only application-specific build cache
 
 ### Manual No-Cache Builds
 
 For manual deployments or development:
 
 ```bash
+# Ultra-safe application-only cleaning
+make clean-app-only         # Remove only app containers/images (preserves everything else)
+
+# Standard cache cleaning (preserves base images)
+make clean-cache            # Clear app caches but keep MongoDB/Redis/Nginx images
+make clean-docker-cache     # Clear Docker cache but preserve base images
+
 # Complete clean rebuild (development)
 make dev-clean              # Stop and remove all containers/volumes
-make clean-cache            # Clear Docker build cache
+make clean-app-only         # Clear application Docker resources safely
 make dev-build-no-cache     # Rebuild with --no-cache flag
 
 # Complete clean rebuild (production)
 make prod-clean             # Stop and remove all containers/volumes  
-make clean-docker-cache     # Clear Docker system cache
+make clean-app-only         # Clear application Docker resources safely
 make prod-build-no-cache    # Rebuild with --no-cache flag
 ```
 
-### What Gets Cleared
+### What Gets Cleared (Intelligently)
 
-The no-cache system clears:
+The smart cache system clears:
 
-- **Docker Layer Cache** - All intermediate layers and build cache
-- **Docker Images** - Project-related Docker images
+**Application Resources (Always Cleared):**
+- **Application Docker Images** - Project-specific images only
+- **Application Containers** - Only app containers, not databases
+- **Docker Build Cache** - Application-specific build layers
 - **Node.js Cache** - npm cache and node_modules directories
 - **Application Files** - logs, temp files, build artifacts
-- **Docker Volumes** - Optionally clears persistent data volumes
-- **BuildKit Cache** - Advanced Docker build cache
+
+**Preserved Resources (Never Touched):**
+- **Base Images** - MongoDB, Redis, Nginx images stay cached
+- **Database Volumes** - Persistent data is preserved
+- **Network Configurations** - Docker networks remain intact
 
 ### Dockerfile No-Cache Features
 

@@ -8,7 +8,7 @@ ENV ?= dev
 .PHONY: check-env setup-env status-all clean-all
 .PHONY: dev-start dev-stop dev-restart dev-logs dev-status dev-rebuild dev-clean dev-shell
 .PHONY: prod-start prod-stop prod-restart prod-logs prod-logs-nginx prod-test-nginx prod-verify-ssl prod-status prod-rebuild prod-clean prod-shell
-.PHONY: dev-build-no-cache prod-build-no-cache clean-cache clean-docker-cache
+.PHONY: dev-build-no-cache prod-build-no-cache clean-cache clean-docker-cache clean-app-only
 
 # Default target
 help:
@@ -50,6 +50,7 @@ help:
 	@echo "  make prod-build-no-cache     - Rebuild production without cache"
 	@echo "  make clean-cache             - Clean all Docker caches"
 	@echo "  make clean-docker-cache      - Clean Docker system cache"
+	@echo "  make clean-app-only          - Clean only application images/containers (safest)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make start                   - Start development environment"
@@ -245,14 +246,38 @@ prod-build-no-cache:
 
 # Cache cleaning commands
 clean-cache:
-	@echo "Cleaning application Docker caches..."
-	@docker system prune -af --volumes || true
-	@docker builder prune -af || true
-	@echo "✓ Application Docker caches cleaned (preserving database images)"
+	@echo "Cleaning application Docker caches only..."
+	@echo "Removing stopped containers..."
+	@docker container prune -f || true
+	@echo "Removing application images (preserving base images)..."
+	@docker images --filter "reference=*tunnel*" --filter "reference=*app*" --filter "reference=*dev*" --filter "reference=*prod*" -q | xargs -r docker rmi -f || true
+	@echo "Cleaning build cache..."
+	@docker builder prune -f || true
+	@echo "Removing unused networks..."
+	@docker network prune -f || true
+	@echo "✓ Application Docker caches cleaned (MongoDB, Redis, Nginx images preserved)"
 
 clean-docker-cache:
-	@echo "Cleaning Docker system cache..."
-	@docker system prune -af || true
-	@docker builder prune -af || true
-	@docker image prune -af || true
-	@echo "✓ Docker system cache cleaned (keeping base images like mongo/redis)"
+	@echo "Cleaning Docker system cache (application-specific only)..."
+	@echo "Removing stopped containers..."
+	@docker container prune -f || true
+	@echo "Removing application images (preserving base images)..."
+	@docker images --filter "reference=*tunnel*" --filter "reference=*app*" --filter "reference=*dev*" --filter "reference=*prod*" -q | xargs -r docker rmi -f || true
+	@echo "Cleaning build cache..."
+	@docker builder prune -f || true
+	@echo "Removing unused networks..."
+	@docker network prune -f || true
+	@echo "Removing application volumes only..."
+	@docker volume ls --filter "name=*tunnel*" --filter "name=*app*" --filter "name=*dev*" --filter "name=*prod*" -q | xargs -r docker volume rm || true
+	@echo "✓ Application Docker caches cleaned (MongoDB, Redis, Nginx images and data preserved)"
+
+# Ultra-safe application-only cleaning for CI/CD
+clean-app-only:
+	@echo "Cleaning only application containers and images (ultra-safe)..."
+	@echo "Stopping application containers..."
+	@docker ps -a --filter "name=*app*" --filter "name=*tunnel*" -q | xargs -r docker stop || true
+	@echo "Removing application containers..."
+	@docker ps -a --filter "name=*app*" --filter "name=*tunnel*" -q | xargs -r docker rm -f || true
+	@echo "Removing application images (preserving ALL base images)..."
+	@docker images --filter "reference=*tunnel*" --filter "reference=*app*" --filter "reference=*dev*" --filter "reference=*prod*" --format "table {{.Repository}}:{{.Tag}}\t{{.ID}}" | grep -v "REPOSITORY" | grep -E "(tunnel|app|dev|prod)" | awk '{print $$2}' | xargs -r docker rmi -f || true
+	@echo "✓ Application cleaned (MongoDB, Redis, Nginx completely untouched)"

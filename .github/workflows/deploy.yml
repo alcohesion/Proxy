@@ -162,14 +162,9 @@ jobs:
           cd docker
           make prod-stop || true
           
-          # Clear Docker build caches (but keep base images like mongo/redis)
-          echo "Cleaning Docker build caches..."
-          make clean-docker-cache || true
-          
-          # Remove only the application container and image
-          echo "Removing application containers and images..."
-          docker-compose -f prod/docker-compose.yml rm -f app || true
-          docker images | grep -E "(proxy|tunnel|app)" | awk '{print $3}' | xargs docker rmi -f || true
+          # Clean only application containers and images (ultra-safe for CI/CD)
+          echo "Cleaning application Docker resources only..."
+          make clean-app-only || true
           
           # Clear Node.js caches in source directory
           echo "Clearing Node.js and application caches..."
