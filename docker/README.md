@@ -32,7 +32,6 @@ Both environments use a multi-container architecture:
 - **app** - Main Node.js application  
 - **mongo** - MongoDB database (with auth in production)
 - **redis** - Redis cache and queue storage (with auth in production)
-- **certbot** - SSL certificate management (production only)
 
 ## Prerequisites
 
@@ -57,10 +56,9 @@ Access: http://localhost
 ```bash
 cd docker
 make setup-env        # Create environment files
-# Edit prod/.env with your domain and strong passwords
-make prod-start       # Start production
-ENV=prod make ssl-setup  # Setup SSL certificates  
-make prod-restart     # Restart with SSL
+# Configure GitHub secrets: SSL_CERT, SSL_KEY, SSL_CA_BUNDLE
+# Deploy via GitHub Actions workflow
+make prod-start       # Start production (after deployment)
 ```
 Access: https://yourdomain.com
 
@@ -68,7 +66,7 @@ Access: https://yourdomain.com
 
 | Feature | Development | Production |
 |---------|-------------|------------|
-| SSL/TLS | No | Yes (Let's Encrypt) |
+| SSL/TLS | No | Yes (GitHub Secrets) |
 | Authentication | No | Yes (MongoDB + Redis) |
 | Logging | Debug | Info/Warn |
 | Rate Limiting | Relaxed | Strict |
@@ -108,9 +106,9 @@ Access: https://yourdomain.com
 | `make prod-rebuild` | Rebuild production services | prod |
 | `make prod-clean` | Clean production environment | prod |
 | `make prod-shell` | Open shell in production app | prod |
-| **SSL Management (production only)** |
-| `ENV=prod make ssl-setup` | Setup SSL certificates with Let's Encrypt | prod |
-| `ENV=prod make ssl-renew` | Renew SSL certificates | prod |
+| `make prod-logs-nginx` | View nginx logs (production) | prod |
+| `make prod-test-nginx` | Test nginx configuration | prod |
+| `make prod-verify-ssl` | Verify SSL certificate chain | prod |
 | **Environment Setup** |
 | `make setup-env` | Create .env files from templates | both |
 | `make check-env` | Check if .env files exist | both |
@@ -131,17 +129,17 @@ make dev-restart         # Restart development
 
 # Production workflow
 make setup-env           # Create environment files  
-# Edit prod/.env with your domain and passwords
-make prod-start          # Start production
-ENV=prod make ssl-setup  # Setup SSL certificates
-make prod-restart        # Restart with SSL
+# Configure GitHub secrets and deploy via GitHub Actions
+make prod-start          # Start production (after deployment)
+make prod-test-nginx     # Test nginx configuration
+make prod-verify-ssl     # Verify SSL certificate chain
 make prod-status         # Check production status
 
 # Environment management
 make status-all          # Check both environments
 make dev-stop            # Stop development only
 make prod-logs           # View production logs only
-ENV=prod make ssl-renew  # Renew SSL certificates
+make prod-logs-nginx     # View nginx logs (production)
 
 # Maintenance
 make dev-rebuild         # Rebuild development
@@ -151,17 +149,19 @@ make clean-all           # Clean everything (dangerous!)
 
 ## SSL Certificate Setup
 
-For production environments, SSL certificates are managed automatically:
+For production environments, SSL certificates are managed automatically via GitHub Actions:
 
-### Automatic Setup (Let's Encrypt)
-1. Edit `prod/.env` with your domain and email
-2. Run `ENV=prod make ssl-setup`
-3. Restart: `make prod-restart`
+### Automated Deployment Setup
+1. Configure GitHub secrets: `SSL_CERT`, `SSL_KEY`, `SSL_CA_BUNDLE`
+2. Deploy via GitHub Actions workflow
+3. Certificates are automatically placed and configured
 
-### Certificate Renewal
-SSL certificates auto-renew. For manual renewal:
+### Manual Testing
+For testing nginx configuration:
 ```bash
-ENV=prod make ssl-renew
+make prod-test-nginx  # Test nginx config
+make prod-logs-nginx  # View nginx logs
+make prod-verify-ssl  # Verify SSL certificate chain
 ```
 
 ## Configuration Files
@@ -197,27 +197,23 @@ nslookup yourdomain.com
 curl -I http://yourdomain.com
 telnet yourdomain.com 80
 
-# 3. Check if nginx is serving the ACME challenge directory
-curl http://yourdomain.com/.well-known/acme-challenge/test
+# 3. Check nginx configuration and logs
+make prod-test-nginx
 
-# 4. If rate limited, wait and retry
-ENV=prod make ssl-setup
+# 4. View nginx logs for errors
+make prod-logs-nginx
 
-# 5. Check Let's Encrypt logs for detailed errors
-make prod-logs
-# or directly:
-docker compose -f prod/docker-compose.yml logs certbot
-
-# 6. For testing, use staging environment first
-# Edit docker-compose.yml and add --staging flag to certbot command
+# 5. Ensure SSL certificates are properly placed
+# Check that cert.pem and key.pem exist in docker/prod/nginx/ssl/
 ```
 
-**Rate limiting issues:**
-- Let's Encrypt has a limit of 5 failed authorizations per domain per hour
-- Wait for the rate limit to reset before retrying
-- Use staging environment for testing: add `--staging` to certbot command
-- Check that your domain DNS points to your server IP
-- Ensure ports 80 and 443 are open in your firewall
+**SSL Certificate issues:**
+- Ensure your SSL certificate files are properly placed in `docker/prod/nginx/ssl/`
+- Required files: `cert.pem` (certificate chain) and `key.pem` (private key)
+- Check nginx configuration: `make prod-test-nginx`
+- View nginx logs: `make prod-logs-nginx`
+- Verify certificate chain is complete (includes intermediate certificates)
+- Check that certificate matches your domain name
 
 **Services won't start:**
 ```bash
@@ -240,7 +236,6 @@ All data is stored in Docker volumes:
 - `mongo-data` - MongoDB database files
 - `redis-data` - Redis persistence files  
 - `app-logs` - Application log files
-- `certbot-conf` - SSL certificates (production)
 
 To backup data:
 ```bash

@@ -4,10 +4,10 @@
 # Environment variables
 ENV ?= dev
 
-.PHONY: help start stop restart logs status rebuild clean shell ssl-setup ssl-renew
+.PHONY: help start stop restart logs status rebuild clean shell
 .PHONY: check-env setup-env status-all clean-all
 .PHONY: dev-start dev-stop dev-restart dev-logs dev-status dev-rebuild dev-clean dev-shell
-.PHONY: prod-start prod-stop prod-restart prod-logs prod-logs-nginx prod-test-nginx prod-status prod-rebuild prod-clean prod-shell
+.PHONY: prod-start prod-stop prod-restart prod-logs prod-logs-nginx prod-test-nginx prod-verify-ssl prod-status prod-rebuild prod-clean prod-shell
 
 # Default target
 help:
@@ -36,10 +36,7 @@ help:
 	@echo "  make prod-logs               - View production logs"
 	@echo "  make prod-logs-nginx         - View nginx logs (production)"
 	@echo "  make prod-test-nginx         - Test nginx config (production)"
-	@echo ""
-	@echo "SSL Management (production only):"
-	@echo "  make ssl-setup               - Setup SSL certificates (production)"
-	@echo "  make ssl-renew               - Renew SSL certificates (production)"
+	@echo "  make prod-verify-ssl         - Verify SSL certificate chain (production)"
 	@echo ""
 	@echo "Setup Commands:"
 	@echo "  make check-env               - Check environment file status"
@@ -146,24 +143,26 @@ prod-clean:
 prod-shell:
 	@$(MAKE) ENV=prod shell
 
-# SSL management (production only)
-ssl-setup:
-	@if [ "$(ENV)" != "prod" ]; then \
-		echo "SSL setup is only available for production environment"; \
-		echo "Use: make prod-start && ENV=prod make ssl-setup"; \
-		exit 1; \
-	fi
-	@echo "Setting up SSL certificates for production..."
-	@cd prod && docker compose run --rm certbot
-
-ssl-renew:
-	@if [ "$(ENV)" != "prod" ]; then \
-		echo "SSL renewal is only available for production environment"; \
-		echo "Use: ENV=prod make ssl-renew"; \
-		exit 1; \
-	fi
-	@echo "Renewing SSL certificates for production..."
-	@cd prod && docker compose run --rm certbot renew && docker compose exec nginx nginx -s reload
+prod-verify-ssl:
+	@echo "Verifying SSL certificate chain for production environment..."
+	@cd prod && docker compose run --rm --entrypoint "sh" nginx -c " \
+		echo 'Checking SSL certificate details:'; \
+		openssl x509 -in /etc/nginx/ssl/fullchain.pem -text -noout | head -20; \
+		echo ''; \
+		echo 'Verifying certificate chain:'; \
+		openssl crl2pkcs7 -nocrl -certfile /etc/nginx/ssl/fullchain.pem | openssl pkcs7 -print_certs -text -noout | grep 'Subject:'; \
+		echo ''; \
+		echo 'Checking certificate and key match:'; \
+		CERT_MD5=\$$(openssl x509 -noout -modulus -in /etc/nginx/ssl/fullchain.pem | openssl md5); \
+		KEY_MD5=\$$(openssl rsa -noout -modulus -in /etc/nginx/ssl/key.pem | openssl md5); \
+		echo \"Certificate modulus: \$$CERT_MD5\"; \
+		echo \"Private key modulus: \$$KEY_MD5\"; \
+		if [ \"\$$CERT_MD5\" = \"\$$KEY_MD5\" ]; then \
+			echo '✓ Certificate and private key match'; \
+		else \
+			echo '✗ Certificate and private key do NOT match'; \
+		fi \
+	" || echo "Error: Could not verify SSL certificates. Make sure nginx container is available."
 
 # Advanced commands
 check-env:

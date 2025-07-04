@@ -12,8 +12,6 @@ services:
       - ./nginx/default.conf:/etc/nginx/templates/default.conf.template:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - nginx-logs:/var/log/nginx
-      - certbot-www:/var/www/certbot
-      - certbot-conf:/etc/letsencrypt
     depends_on:
       app:
         condition: service_healthy
@@ -25,19 +23,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
-  # Certbot for SSL certificates
-  certbot:
-    image: certbot/certbot
-    volumes:
-      - certbot-www:/var/www/certbot
-      - certbot-conf:/etc/letsencrypt
-    environment:
-      - DOMAIN=${DOMAIN}
-      - SSL_EMAIL=${SSL_EMAIL}
-    command: certonly --webroot --webroot-path=/var/www/certbot --email ${SSL_EMAIL} --agree-tos --no-eff-email -d ${DOMAIN}
-    depends_on:
-      - nginx
 
   # Main application
   app:
@@ -119,10 +104,6 @@ volumes:
   app-logs:
     driver: local
   nginx-logs:
-    driver: local
-  certbot-www:
-    driver: local
-  certbot-conf:
     driver: local
 
 networks:

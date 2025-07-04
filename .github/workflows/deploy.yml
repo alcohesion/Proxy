@@ -110,6 +110,45 @@ jobs:
       run: |
         scp docker/prod/.env ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:~/apps/Proxy/docker/prod/.env
         
+    - name: Setup SSL certificates from secrets
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+          cd apps/Proxy/docker/prod/nginx/ssl
+          
+          # Create SSL certificate files from GitHub secrets
+          echo "Setting up SSL certificates from GitHub secrets..."
+          
+          # Create cert.pem from secret
+          cat > cert-original.pem << 'CERT_EOF'
+        ${{ secrets.SSL_CERT }}
+        CERT_EOF
+          
+          # Create ca.crt from secret
+          cat > ca.crt << 'CA_EOF'  
+        ${{ secrets.SSL_CA_BUNDLE }}
+        CA_EOF
+          
+          # Create key.pem from secret
+          cat > key.pem << 'KEY_EOF'
+        ${{ secrets.SSL_KEY }}
+        KEY_EOF
+          
+          # Create full certificate chain (domain cert + CA bundle)
+          cat cert-original.pem ca.crt > cert.pem
+          
+          # Also create fullchain.pem for clarity (same content as cert.pem)
+          cp cert.pem fullchain.pem
+          
+          # Set proper permissions
+          chmod 644 cert.pem
+          chmod 644 fullchain.pem
+          chmod 600 key.pem
+          chmod 644 ca.crt
+          chmod 644 cert-original.pem
+          
+          echo "SSL certificates configured successfully"
+        EOF
+        
     - name: Deploy to production server
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
@@ -127,36 +166,6 @@ jobs:
           
           # Start the production application
           make prod-start
-        EOF
-        
-    - name: Setup SSL certificates (if domain configured)
-      run: |
-        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
-          cd apps/Proxy/docker
-          # Only setup SSL if domain is configured and not localhost
-          if [ "${{ secrets.DOMAIN }}" != "" ] && [ "${{ secrets.DOMAIN }}" != "localhost" ]; then
-            echo "Checking SSL certificates for ${{ secrets.DOMAIN }}..."
-            # Check if SSL certificates already exist by trying to list them
-            SSL_CHECK=$(docker compose -f prod/docker-compose.yml run --rm --entrypoint="ls" certbot /etc/letsencrypt/live/${{ secrets.DOMAIN }}/fullchain.pem 2>/dev/null || echo "NOTFOUND")
-            
-            if [ "$SSL_CHECK" = "NOTFOUND" ]; then
-              echo "No existing SSL certificates found. Setting up SSL certificates for ${{ secrets.DOMAIN }}..."
-              ENV=prod make ssl-setup
-              SSL_RESULT=$?
-              if [ $SSL_RESULT -eq 0 ]; then
-                echo "SSL setup successful, restarting services..."
-                sleep 10
-                make prod-restart
-              else
-                echo "SSL setup failed (exit code: $SSL_RESULT) - may be rate limited or domain not accessible"
-                echo "Continuing without SSL restart"
-              fi
-            else
-              echo "SSL certificates already exist for ${{ secrets.DOMAIN }}, skipping SSL setup"
-            fi
-          else
-            echo "No domain configured or localhost detected, skipping SSL setup"
-          fi
         EOF
         
     - name: Verify production deployment
