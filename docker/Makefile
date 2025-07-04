@@ -6,9 +6,10 @@ ENV ?= dev
 
 .PHONY: help start stop restart logs status rebuild clean shell
 .PHONY: check-env setup-env status-all clean-all
-.PHONY: dev-start dev-stop dev-restart dev-logs dev-status dev-rebuild dev-clean dev-shell
-.PHONY: prod-start prod-stop prod-restart prod-logs prod-logs-nginx prod-test-nginx prod-verify-ssl prod-status prod-rebuild prod-clean prod-shell
+.PHONY: dev-start dev-stop dev-restart dev-logs dev-logs-app dev-status dev-rebuild dev-clean dev-shell
+.PHONY: prod-start prod-stop prod-restart prod-logs prod-logs-app prod-logs-nginx prod-test-nginx prod-verify-ssl prod-status prod-rebuild prod-clean prod-shell
 .PHONY: dev-build-no-cache prod-build-no-cache clean-cache clean-docker-cache clean-app-only
+.PHONY: logs-app
 
 # Default target
 help:
@@ -21,6 +22,7 @@ help:
 	@echo "  make stop                    - Stop development environment" 
 	@echo "  make restart                 - Restart development environment"
 	@echo "  make logs                    - View development logs"
+	@echo "  make logs-app                - View only application logs (no mongo/redis noise)"
 	@echo "  make status                  - Check development status"
 	@echo "  make rebuild                 - Rebuild development services"
 	@echo "  make clean                   - Clean development environment"
@@ -31,10 +33,12 @@ help:
 	@echo "  make dev-stop                - Stop development environment"
 	@echo "  make dev-status              - Check development status"
 	@echo "  make dev-logs                - View development logs"
+	@echo "  make dev-logs-app            - View only development app logs"
 	@echo "  make prod-start              - Start production environment"
 	@echo "  make prod-stop               - Stop production environment"
 	@echo "  make prod-status             - Check production status"
 	@echo "  make prod-logs               - View production logs"
+	@echo "  make prod-logs-app           - View only production app logs"
 	@echo "  make prod-logs-nginx         - View nginx logs (production)"
 	@echo "  make prod-test-nginx         - Test nginx config (production)"
 	@echo "  make prod-verify-ssl         - Verify SSL certificate chain (production)"
@@ -56,7 +60,9 @@ help:
 	@echo "  make start                   - Start development environment"
 	@echo "  make prod-start              - Start production environment"
 	@echo "  make dev-logs                - View development logs"
+	@echo "  make dev-logs-app            - View only development app logs (clean output)"
 	@echo "  make prod-restart            - Restart production environment"
+	@echo "  make prod-logs-app           - View only production app logs (clean output)"
 	@echo "  ENV=prod make status         - Alternative syntax for production"
 
 # Environment commands
@@ -75,6 +81,10 @@ restart:
 logs:
 	@echo "Showing $(ENV) logs..."
 	@cd $(ENV) && docker compose logs -f
+
+logs-app:
+	@echo "Showing $(ENV) app logs only..."
+	@cd $(ENV) && docker compose logs -f app
 
 status:
 	@echo "Checking $(ENV) status..."
@@ -105,6 +115,9 @@ dev-restart:
 dev-logs:
 	@$(MAKE) ENV=dev logs
 
+dev-logs-app:
+	@$(MAKE) ENV=dev logs-app
+
 dev-status:
 	@$(MAKE) ENV=dev status
 
@@ -129,6 +142,9 @@ prod-restart:
 
 prod-logs:
 	@$(MAKE) ENV=prod logs
+
+prod-logs-app:
+	@$(MAKE) ENV=prod logs-app
 
 prod-logs-nginx:
 	@echo "Viewing nginx logs for production environment..."

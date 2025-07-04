@@ -60,7 +60,7 @@ services:
     networks:
       - proxy-network
     restart: unless-stopped
-    command: mongod --dbpath /data/db --logpath /dev/stdout --bind_ip 0.0.0.0 --port 27017 --noauth
+    command: mongod --dbpath /data/db --logpath /dev/stdout --bind_ip 0.0.0.0 --port 27017 --noauth --quiet --logComponentVerbosity '{"network":{"verbosity":0},"command":{"verbosity":0}}'
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 30s
