@@ -245,16 +245,14 @@ prod-build-no-cache:
 
 # Cache cleaning commands
 clean-cache:
-	@echo "Cleaning all Docker caches..."
+	@echo "Cleaning application Docker caches..."
 	@docker system prune -af --volumes || true
 	@docker builder prune -af || true
-	@echo "✓ Docker caches cleaned"
+	@echo "✓ Application Docker caches cleaned (preserving database images)"
 
 clean-docker-cache:
 	@echo "Cleaning Docker system cache..."
 	@docker system prune -af || true
 	@docker builder prune -af || true
 	@docker image prune -af || true
-	@docker volume prune -f || true
-	@docker network prune -f || true
-	@echo "✓ Docker system cache cleaned"
+	@echo "✓ Docker system cache cleaned (keeping base images like mongo/redis)"

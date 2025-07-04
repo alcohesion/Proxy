@@ -162,16 +162,17 @@ jobs:
           cd docker
           make prod-stop || true
           
-          # Clear Docker caches and unused images
-          echo "Cleaning Docker caches..."
+          # Clear Docker caches and unused images (but keep base images like mongo/redis)
+          echo "Cleaning Docker build caches..."
           make clean-docker-cache || true
           
-          # Remove all containers and images related to this project
-          echo "Removing project containers and images..."
-          docker-compose -f prod/docker-compose.yml down --rmi all --volumes --remove-orphans || true
+          # Remove only application containers and images (keep mongo/redis images)
+          echo "Removing application containers and images..."
+          docker-compose -f prod/docker-compose.yml down --volumes --remove-orphans || true
+          docker images | grep -E "(proxy|tunnel|app)" | awk '{print $3}' | xargs docker rmi -f || true
           
           # Clear Node.js caches in source directory
-          echo "Clearing Node.js caches..."
+          echo "Clearing Node.js and application caches..."
           cd ..
           rm -rf node_modules || true
           rm -rf package-lock.json || true
@@ -179,7 +180,7 @@ jobs:
           rm -rf ~/.npm/_cacache || true
           npm cache clean --force || true
           
-          # Clear application logs and temp files
+          # Clear application logs and temp files (not database data)
           echo "Clearing application files..."
           rm -rf logs/* || true
           rm -rf tmp/* || true
