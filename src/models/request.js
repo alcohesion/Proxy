@@ -29,6 +29,19 @@ const request = new mongoose.Schema({
 	updatedAt: { type: Date, default: Date.now }
 });
 
+// Middleware to generate hex before validation (since validation happens before save)
+request.pre('validate', function(next) {
+	try {
+		// Generate hex if not already set (for new documents)
+		if (this.isNew && !this.hex) {
+			this.hex = crypto.request();
+		}
+		next();
+	} catch (error) {
+		next(error);
+	}
+});
+
 // Middleware to update the `updatedAt` timestamp on modification
 request.pre('save', function(next) {
 	try {

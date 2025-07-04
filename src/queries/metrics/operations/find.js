@@ -1,10 +1,10 @@
-module.exports = Metrics => {
+module.exports = (Metrics, log) => {
 	// Find metrics by hex
 	const findbyhex = async (hex) => {
 		try {
 			return await Metrics.findOne({ hex });
 		} catch (error) {
-			console.error('Error finding metrics by hex:', error);
+			log.error('Error finding metrics by hex:', error);
 			throw error;
 		}
 	};
@@ -27,7 +27,7 @@ module.exports = Metrics => {
 
 			return await mongoQuery.exec();
 		} catch (error) {
-			console.error('Error finding many metrics:', error);
+			log.error('Error finding many metrics:', error);
 			throw error;
 		}
 	};

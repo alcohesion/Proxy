@@ -1,4 +1,4 @@
-const { device: deviceQueries, request: requestQueries } = require('../../queries');
+const queries = require('../../queries');
 
 // Message handler for metrics WebSocket
 const handleMessage = async (ws, message, isBinary, metricsInstance) => {

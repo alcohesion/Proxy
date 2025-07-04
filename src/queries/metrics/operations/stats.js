@@ -1,10 +1,10 @@
-module.exports = Metrics => {
+module.exports = (Metrics, log) => {
 	// Count operations for metrics
 	const count = async (query = {}) => {
 		try {
 			return await Metrics.countDocuments(query);
 		} catch (error) {
-			console.error('Error counting metrics:', error);
+			log.error('Error counting metrics:', error);
 			throw error;
 		}
 	};
@@ -13,7 +13,7 @@ module.exports = Metrics => {
 		try {
 			return await Metrics.countDocuments({ active });
 		} catch (error) {
-			console.error('Error counting metrics by status:', error);
+			log.error('Error counting metrics by status:', error);
 			throw error;
 		}
 	};
@@ -22,7 +22,7 @@ module.exports = Metrics => {
 		try {
 			return await Metrics.countDocuments({ deviceId });
 		} catch (error) {
-			console.error('Error counting metrics by device:', error);
+			log.error('Error counting metrics by device:', error);
 			throw error;
 		}
 	};

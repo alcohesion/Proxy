@@ -1,8 +1,8 @@
 const operations = require('./operations');
 
-module.exports = Metrics => {
+module.exports = (Metrics, log) => {
   // Metrics query operations
   return {
-    ...operations(Metrics)
+    ...operations(Metrics, log)
   };
 }

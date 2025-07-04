@@ -32,7 +32,7 @@ module.exports =  async (ws, data, log, queries) => {
 		if (success) {
 			// Update request status in database
 			try {
-				await queries.updateResponse(requestId, {
+				await queries.request.crud.updateResponse(requestId, {
 					statusCode: code || 500,
 					headers: { 'content-type': 'application/json' },
 					body: JSON.stringify({ error: errorMessage, code: code || 500 }),

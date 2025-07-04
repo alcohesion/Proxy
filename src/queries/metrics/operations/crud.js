@@ -1,11 +1,10 @@
-module.exports = Metrics => {
+module.exports = (Metrics, log) => {
 	// Create a new metrics record
 	const create = async (data) => {
 		try {
-			const newMetrics = new Metrics(data);
-			return await newMetrics.save();
+			return await Metrics.create(data);
 		} catch (error) {
-			console.error('Error creating metrics:', error);
+			log.error('Error creating metrics:', error);
 			throw error;
 		}
 	};

@@ -31,14 +31,14 @@ const generateHex = (prefix = 'RQT') => {
  */
 const hex = {
 	// Request documents
-	request: () => generateHex('RQT'),
+	request: () => generateHex('R0X'),
 	
 	// Device documents  
-	device: () => generateHex('DEV'),
+	device: () => generateHex('D0X'),
 	
 	// Metrics documents
-	metrics: () => generateHex('MET'),
-	
+	metrics: () => generateHex('M0X'),
+
 	// Generic hex generator
 	generate: generateHex
 };

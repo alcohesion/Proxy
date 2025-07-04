@@ -1,11 +1,10 @@
-module.exports = Request => {
+module.exports = (Request, log) => {
 	// Create a new request
 	const create = async (data) => {
 		try {
-			const newRequest = new Request(data);
-			return await newRequest.save();
+			return await Request.create(data);
 		} catch (error) {
-			console.error('Error creating request:', error);
+			log.error('Error creating request:', error);
 			throw error;
 		}
 	};
@@ -19,7 +18,7 @@ module.exports = Request => {
 				{ new: true, runValidators: true }
 			);
 		} catch (error) {
-			console.error('Error updating request by hex:', error);
+			log.error('Error updating request by hex:', error);
 			throw error;
 		}
 	};
@@ -41,7 +40,7 @@ module.exports = Request => {
 				{ new: true, runValidators: true }
 			);
 		} catch (error) {
-			console.error('Error updating request status:', error);
+			log.error('Error updating request status:', error);
 			throw error;
 		}
 	};
@@ -62,7 +61,7 @@ module.exports = Request => {
 				{ new: true, runValidators: true }
 			);
 		} catch (error) {
-			console.error('Error updating request response:', error);
+			log.error('Error updating request response:', error);
 			throw error;
 		}
 	};

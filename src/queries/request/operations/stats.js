@@ -1,10 +1,10 @@
-module.exports = Request => {
+module.exports = (Request, log) => {
 	// Count requests with query
 	const count = async (query = {}) => {
 		try {
 			return await Request.countDocuments(query);
 		} catch (error) {
-			console.error('Error counting requests:', error);
+			log.error('Error counting requests:', error);
 			throw error;
 		}
 	};
@@ -14,7 +14,7 @@ module.exports = Request => {
 		try {
 			return await Request.aggregate(pipeline);
 		} catch (error) {
-			console.error('Error aggregating requests:', error);
+			log.error('Error aggregating requests:', error);
 			throw error;
 		}
 	};
@@ -24,7 +24,7 @@ module.exports = Request => {
 		try {
 			return await Request.countDocuments({ status });
 		} catch (error) {
-			console.error('Error counting requests by status:', error);
+			log.error('Error counting requests by status:', error);
 			throw error;
 		}
 	};

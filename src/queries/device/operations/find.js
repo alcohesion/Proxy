@@ -1,10 +1,10 @@
-module.exports = Device => {
+module.exports = (Device, log) => {
 	// Find operations for devices
 	const findByHex = async (hex) => {
 		try {
 			return await Device.findOne({ hex });
 		} catch (error) {
-			console.error('Error finding device by hex:', error);
+			log.error('Error finding device by hex:', error);
 			throw error;
 		}
 	};
@@ -13,7 +13,7 @@ module.exports = Device => {
 		try {
 			return await Device.findOne({ fingerprint });
 		} catch (error) {
-			console.error('Error finding device by fingerprint:', error);
+			log.error('Error finding device by fingerprint:', error);
 			throw error;
 		}
 	};
@@ -22,7 +22,7 @@ module.exports = Device => {
 		try {
 			return await Device.find({ ip }).sort({ createdAt: -1 });
 		} catch (error) {
-			console.error('Error finding devices by IP:', error);
+			log.error('Error finding devices by IP:', error);
 			throw error;
 		}
 	};
@@ -45,7 +45,7 @@ module.exports = Device => {
 
 			return await mongoQuery.exec();
 		} catch (error) {
-			console.error('Error finding many devices:', error);
+			log.error('Error finding many devices:', error);
 			throw error;
 		}
 	};
@@ -56,7 +56,7 @@ module.exports = Device => {
 				.sort({ 'stats.lastRequestAt': -1 })
 				.limit(limit);
 		} catch (error) {
-			console.error('Error finding active devices:', error);
+			log.error('Error finding active devices:', error);
 			throw error;
 		}
 	};
@@ -67,7 +67,7 @@ module.exports = Device => {
 				.sort({ createdAt: -1 })
 				.limit(limit);
 		} catch (error) {
-			console.error('Error finding recent devices:', error);
+			log.error('Error finding recent devices:', error);
 			throw error;
 		}
 	};

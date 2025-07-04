@@ -1,11 +1,10 @@
-module.exports = Device => {
+module.exports = (Device, log) => {
 	// Create operations for devices
 	const create = async (data) => {
 		try {
-			const newDevice = new Device(data);
-			return await newDevice.save();
+			return await Device.create(data);
 		} catch (error) {
-			console.error('Error creating device:', error);
+			log.error('Error creating device:', error);
 			throw error;
 		}
 	};
@@ -17,7 +16,7 @@ module.exports = Device => {
 			let device = await Device.findOne({ fingerprint });
 
 			if (!device) {
-				device = new Device({
+				device = await Device.create({
 					fingerprint,
 					userAgent: deviceInfo.userAgent,
 					ip: deviceInfo.ip,
@@ -27,11 +26,12 @@ module.exports = Device => {
 			} else {
 				device.requestCount = (device.requestCount || 0) + 1;
 				device.lastActive = new Date();
+				await device.save();
 			}
 
-			return await device.save();
+			return device;
 		} catch (error) {
-			console.error('Error creating/updating device:', error);
+			log.error('Error creating/updating device:', error);
 			throw error;
 		}
 	};
@@ -45,7 +45,7 @@ module.exports = Device => {
 				{ new: true, runValidators: true }
 			);
 		} catch (error) {
-			console.error('Error updating device by hex:', error);
+			log.error('Error updating device by hex:', error);
 			throw error;
 		}
 	};
@@ -64,7 +64,7 @@ module.exports = Device => {
 				{ new: true }
 			);
 		} catch (error) {
-			console.error('Error updating device stats:', error);
+			log.error('Error updating device stats:', error);
 			throw error;
 		}
 	};
@@ -77,7 +77,7 @@ module.exports = Device => {
 				{ new: true }
 			);
 		} catch (error) {
-			console.error('Error blocking device:', error);
+			log.error('Error blocking device:', error);
 			throw error;
 		}
 	};
@@ -90,7 +90,7 @@ module.exports = Device => {
 				{ new: true }
 			);
 		} catch (error) {
-			console.error('Error unblocking device:', error);
+			log.error('Error unblocking device:', error);
 			throw error;
 		}
 	};

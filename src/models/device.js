@@ -31,7 +31,20 @@ const device = new mongoose.Schema({
 	updatedAt: { type: Date, default: Date.now }
 });
 
-// Middleware to update the `updatedAt` timestamp on modification
+// Middleware to generate hex before validation (since validation happens before save)
+device.pre('validate', function(next) {
+	try {
+		// Generate hex if not already set (for new documents)
+		if (this.isNew && !this.hex) {
+			this.hex = crypto.device();
+		}
+		next();
+	} catch (error) {
+		next(error);
+	}
+});
+
+// Middleware to generate hex identifier before saving
 device.pre('save', function(next) {
 	try {
 		// Generate hex if not already set (for new documents)
@@ -48,9 +61,36 @@ device.pre('save', function(next) {
 	}
 });
 
-device.pre('findOneAndUpdate', function() {
-	this.set({ updatedAt: new Date() });
+device.pre('findOneAndUpdate', function(next) {
+	try {
+		// Generate hex if not already set (for updates)
+		if (this._update && !this._update.hex) {
+			this._update.hex = crypto.device();
+		}	
+		// Ensure updatedAt is set on updates
+		this._update = this._update || {};
+		this._update.updatedAt = new Date();
+		next();
+	} catch (error) {
+		next(error);
+	}
 });
+
+device.pre('updateOne', function(next) {
+	try {
+		// Generate hex if not already set (for updates)
+		if (this._update && !this._update.hex) {
+			this._update.hex = crypto.device();
+		}
+		// Ensure updatedAt is set on updates
+		this._update = this._update || {};
+		this._update.updatedAt = new Date();
+		next();
+	} catch (error) {
+		next(error);
+	}
+});
+
 
 // Index for performance
 device.index({ ip: 1 });

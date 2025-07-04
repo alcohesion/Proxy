@@ -1,10 +1,10 @@
-module.exports = Request => {
+module.exports = (Request, log) => {
 	// Find request by hex
 	const findbyhex = async (hex) => {
 		try {
 			return await Request.findOne({ hex });
 		} catch (error) {
-			console.error('Error finding request by hex:', error);
+			log.error('Error finding request by hex:', error);
 			throw error;
 		}
 	};
@@ -32,7 +32,7 @@ module.exports = Request => {
 
 			return await mongoQuery.exec();
 		} catch (error) {
-			console.error('Error finding many requests:', error);
+			log.error('Error finding many requests:', error);
 			throw error;
 		}
 	};

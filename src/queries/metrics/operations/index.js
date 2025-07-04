@@ -3,11 +3,11 @@ const find = require('./find');
 const stats = require('./stats');
 const remove = require('./remove');
 
-module.exports = Device => {
+module.exports = (Metrics, log) => {
 	return {
-		count: stats.count(Device),
-		create: crud.create(Device),
-		find: find(Device),
-		deleteby: remove(Device)
+		stats: stats(Metrics, log),
+		crud: crud(Metrics, log),
+		find: find(Metrics, log),
+		remove: remove(Metrics, log)
 	};
 };

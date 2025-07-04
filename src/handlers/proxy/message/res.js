@@ -28,7 +28,7 @@ module.exports = async (ws, data, log, queries) => {
 	if (success) {
 		// Update request status in database
 		try {
-			await queries.updateResponse(requestId, {
+			await queries.request.crud.updateResponse(requestId, {
 				statusCode: status,
 				headers: headers || {},
 				body: body || '',

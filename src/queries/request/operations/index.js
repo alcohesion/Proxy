@@ -3,12 +3,12 @@ const find = require('./find');
 const stats = require('./stats');
 const remove = require('./remove');
 
-module.exports = Request => {
+module.exports = (Request, log) => {
 	// Request query operations
 	return {
-		count: stats.count(Request),
-		create: crud.create(Request),
-		find: find(Request),
-		deleteby: remove(Request)
+		stats: stats(Request, log),
+		crud: crud(Request, log),
+		find: find(Request, log),
+		remove: remove(Request, log)
 	};
 }

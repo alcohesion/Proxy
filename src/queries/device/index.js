@@ -1,8 +1,8 @@
 const operations = require('./operations');
 
-module.exports = Device => {
+module.exports = (Device, log) => {
   // Device query operations
   return {
-    ...operations(Device)
+    ...operations(Device, log)
   };
 }

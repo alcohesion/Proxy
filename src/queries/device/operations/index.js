@@ -2,10 +2,10 @@ const crud = require('./crud');
 const find = require('./find');
 const stats = require('./stats');
 
-module.exports = Device => {
+module.exports = (Device, log) => {
 	return {
-		count: stats.count(Device),
-		create: crud.create(Device),
-		find: find(Device)
+		stats: stats(Device, log),
+		crud: crud(Device, log),
+		find: find(Device, log)
 	};
 };

@@ -4,7 +4,7 @@ module.exports = async (ws, log, queries) => {
 	
 	// Create or update device record
 	try {
-		const device = await queries.device.createOrUpdate({
+		const device = await queries.device.crud.createOrUpdate({
 			userAgent: ws.userAgent,
 			ip: ws.ip
 		});

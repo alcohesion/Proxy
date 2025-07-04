@@ -1,4 +1,4 @@
-const { device: deviceQueries, request: requestQueries } = require('../queries');
+const queries = require('../queries');
 
 const {
 	metrics: { auth, message, connection, interval }
@@ -112,17 +112,17 @@ class MetricsWebSocket {
 				successfulRequests,
 				failedRequests
 			] = await Promise.all([
-				requestQueries.count({}),
-				requestQueries.count({ timestamp: { $gte: oneHourAgo } }),
-				requestQueries.count({ timestamp: { $gte: oneDayAgo } }),
-				requestQueries.count({ status: { $gte: 200, $lt: 400 } }),
-				requestQueries.count({ $or: [{ status: { $gte: 400 } }, { error: true }] })
+				queries.request.stats.count({}),
+				queries.request.stats.count({ timestamp: { $gte: oneHourAgo } }),
+				queries.request.stats.count({ timestamp: { $gte: oneDayAgo } }),
+				queries.request.stats.count({ status: { $gte: 200, $lt: 400 } }),
+				queries.request.stats.count({ $or: [{ status: { $gte: 400 } }, { error: true }] })
 			]);
 			
 			// Get device statistics
 			const [totalDevices, activeDevices] = await Promise.all([
-				deviceQueries.count({}),
-				deviceQueries.count({ lastActive: { $gte: oneHourAgo } })
+				queries.device.stats.count({}),
+				queries.device.stats.count({ lastActive: { $gte: oneHourAgo } })
 			]);
 			
 			// Calculate average response time
@@ -157,7 +157,7 @@ class MetricsWebSocket {
 	// Send device analytics
 	async sendDevices(ws, limit = 50) {
 		try {
-			const devices = await deviceQueries.findMany({}, {
+			const devices = await queries.device.find.findMany({}, {
 				limit,
 				sort: { lastActive: -1 }
 			});
@@ -175,7 +175,7 @@ class MetricsWebSocket {
 	// Send recent requests
 	async sendRecentRequests(ws, limit = 50) {
 		try {
-			const requests = await requestQueries.findMany({}, {
+			const requests = await queries.request.find.findmany({}, {
 				limit,
 				sort: { timestamp: -1 }
 			});
@@ -219,7 +219,7 @@ class MetricsWebSocket {
 	// Calculate average response time
 	async getAverageResponseTime() {
 		try {
-			const result = await requestQueries.aggregate([
+			const result = await queries.request.stats.aggregate([
 				{
 					$match: {
 						duration: { $exists: true, $ne: null },

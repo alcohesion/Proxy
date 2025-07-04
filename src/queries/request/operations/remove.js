@@ -1,10 +1,10 @@
-module.exports = Request => {
+module.exports = (Request, log) => {
 	// Delete request by hex
 	const deletebyhex = async (hex) => {
 		try {
 			return await Request.findOneAndDelete({ hex });
 		} catch (error) {
-			console.error('Error deleting request by hex:', error);
+			log.error('Error deleting request by hex:', error);
 			throw error;
 		}
 	};
