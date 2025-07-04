@@ -8,6 +8,7 @@ ENV ?= dev
 .PHONY: check-env setup-env status-all clean-all
 .PHONY: dev-start dev-stop dev-restart dev-logs dev-status dev-rebuild dev-clean dev-shell
 .PHONY: prod-start prod-stop prod-restart prod-logs prod-logs-nginx prod-test-nginx prod-verify-ssl prod-status prod-rebuild prod-clean prod-shell
+.PHONY: dev-build-no-cache prod-build-no-cache clean-cache clean-docker-cache
 
 # Default target
 help:
@@ -43,6 +44,12 @@ help:
 	@echo "  make setup-env               - Create environment files from templates"
 	@echo "  make status-all              - Show status of both environments"
 	@echo "  make clean-all               - Clean both environments (dangerous!)"
+	@echo ""
+	@echo "Build Commands:"
+	@echo "  make dev-build-no-cache      - Rebuild development without cache"
+	@echo "  make prod-build-no-cache     - Rebuild production without cache"
+	@echo "  make clean-cache             - Clean all Docker caches"
+	@echo "  make clean-docker-cache      - Clean Docker system cache"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make start                   - Start development environment"
@@ -226,3 +233,28 @@ status-all:
 	@echo ""
 	@echo "=== Production Environment Status ==="
 	@cd prod && docker compose ps || echo "Production environment not running"
+
+# No-cache build commands
+dev-build-no-cache:
+	@echo "Rebuilding development environment with no cache..."
+	@cd dev && docker compose down && docker compose build --no-cache && docker compose up -d
+
+prod-build-no-cache:
+	@echo "Rebuilding production environment with no cache..."
+	@cd prod && docker compose down && docker compose build --no-cache && docker compose up -d
+
+# Cache cleaning commands
+clean-cache:
+	@echo "Cleaning all Docker caches..."
+	@docker system prune -af --volumes || true
+	@docker builder prune -af || true
+	@echo "✓ Docker caches cleaned"
+
+clean-docker-cache:
+	@echo "Cleaning Docker system cache..."
+	@docker system prune -af || true
+	@docker builder prune -af || true
+	@docker image prune -af || true
+	@docker volume prune -f || true
+	@docker network prune -f || true
+	@echo "✓ Docker system cache cleaned"

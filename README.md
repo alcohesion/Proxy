@@ -20,22 +20,97 @@ src/
 ├── configs/                # Configuration management
 │   ├── app.js             # Application configuration
 │   ├── data.js            # Database configuration
+│   ├── index.js           # Configuration exports
 │   └── proxy.js           # Proxy settings
 ├── models/                 # MongoDB data models
+│   ├── connect.js         # Database connection
 │   ├── device.js          # Device tracking model
+│   ├── index.js           # Model exports
 │   ├── metrics.js         # Analytics metrics model
 │   └── request.js         # Request logging model
-├── queries/                # Database query operations
-│   ├── device.js          # Device CRUD operations
-│   ├── metrics.js         # Metrics CRUD operations
-│   └── request.js         # Request CRUD operations
+├── queries/                # Database query operations (factory pattern)
+│   ├── device/            # Device query operations
+│   │   ├── index.js       # Device query factory
+│   │   └── operations/    # Modular operations
+│   │       ├── crud.js    # Create, update, delete operations
+│   │       ├── find.js    # Find operations
+│   │       ├── index.js   # Operations exports
+│   │       └── stats.js   # Statistics operations
+│   ├── metrics/           # Metrics query operations
+│   │   ├── index.js       # Metrics query factory
+│   │   └── operations/    # Modular operations
+│   │       ├── crud.js    # Create, update, delete operations
+│   │       └── index.js   # Operations exports
+│   ├── request/           # Request query operations
+│   │   ├── index.js       # Request query factory
+│   │   └── operations/    # Modular operations
+│   │       ├── crud.js    # Create, update, delete operations
+│   │       ├── find.js    # Find operations
+│   │       └── stats.js   # Statistics operations
+│   └── index.js           # Query factory exports
+├── handlers/               # WebSocket event handlers
+│   ├── index.js           # Handler exports
+│   ├── metrics/           # Metrics handlers
+│   │   ├── auth.js        # Authentication handler
+│   │   ├── connection.js  # Connection handler
+│   │   ├── index.js       # Metrics handler exports
+│   │   ├── interval.js    # Interval metrics handler
+│   │   └── message.js     # Message handler
+│   └── proxy/             # Proxy handlers
+│       ├── auth.js        # Authentication handler
+│       ├── index.js       # Proxy handler exports
+│       ├── connection/    # Connection management
+│       │   ├── handle.js  # Connection handler
+│       │   ├── index.js   # Connection exports
+│       │   ├── manager.js # Connection manager
+│       │   ├── tester.js  # Connection tester
+│       │   └── validator.js # Connection validator
+│       └── message/       # Message handling
+│           ├── error.js   # Error message handler
+│           ├── index.js   # Message exports
+│           ├── req.js     # Request message handler
+│           └── res.js     # Response message handler
 ├── services/               # Business logic services
+│   ├── health/            # Health check services
+│   │   ├── index.js       # Health service exports
+│   │   └── handlers/      # Health handlers
+│   │       ├── index.js   # Handler exports
+│   │       └── status.js  # Status handler
 │   ├── metrics/           # Analytics services
-│   └── proxy/             # Proxy services
-├── utils/                  # Utility functions
-│   └── hex.js             # Secure hex ID generation
-└── queues/                 # Background job processing
-    └── bull/              # Bull queue integration
+│   │   └── index.js       # Metrics service
+│   ├── proxy/             # Proxy services
+│   │   ├── index.js       # Proxy service exports
+│   │   └── handlers/      # Proxy handlers
+│   │       ├── index.js   # Handler exports
+│   │       └── request.js # Request handler
+│   └── index.js           # Service exports
+├── wss/                   # WebSocket servers
+│   ├── index.js           # WebSocket exports
+│   ├── metrics.js         # Metrics WebSocket server
+│   └── proxy.js           # Proxy WebSocket server
+├── utils/                 # Utility functions
+│   ├── client/            # Client utilities
+│   │   ├── index.js       # Client exports
+│   │   └── manager.js     # Client manager
+│   ├── crypto/            # Cryptographic utilities
+│   │   ├── generator.js   # Hex ID generator
+│   │   └── index.js       # Crypto exports
+│   ├── http/              # HTTP utilities
+│   │   ├── forward.js     # Request forwarding
+│   │   └── index.js       # HTTP exports
+│   ├── metrics/           # Metrics utilities
+│   │   ├── broadcast.js   # Metrics broadcasting
+│   │   └── index.js       # Metrics exports
+│   └── index.js           # Utility exports
+├── queues/                # Background job processing
+│   ├── bull/              # Bull queue integration
+│   │   ├── index.js       # Bull exports
+│   │   ├── metrics.js     # Metrics queue
+│   │   ├── queues.js      # Queue definitions
+│   │   └── request.js     # Request queue
+│   └── index.js           # Queue exports
+└── logging/               # Logging utilities
+    └── index.js           # Logging configuration
 ```
 
 ## Installation & Deployment
@@ -53,6 +128,7 @@ src/
    cd docker
    make setup-env        # Create environment files
    make start            # Start development environment
+   make dev-logs         # View development logs
    ```
    Access: http://localhost
 
@@ -63,8 +139,29 @@ src/
    # Configure GitHub secrets: SSL_CERT, SSL_KEY, SSL_CA_BUNDLE
    # Deploy via GitHub Actions workflow
    make prod-start       # Start production (after deployment)
+   make prod-logs        # View production logs
+   make prod-status      # Check production status
    ```
    Access: https://yourdomain.com
+
+### Docker Build Commands
+
+The project supports no-cache builds to ensure fresh deployments:
+
+```bash
+# Development with no cache
+make dev-build-no-cache   # Rebuild development without cache
+make dev-clean           # Clean development environment
+
+# Production with no cache
+make prod-build-no-cache  # Rebuild production without cache
+make prod-clean          # Clean production environment
+
+# Cache management
+make clean-cache         # Clean all Docker caches
+make clean-docker-cache  # Clean Docker system cache
+make status-all          # Check status of both environments
+```
 
 ### Option 2: Manual Installation
 
@@ -105,6 +202,13 @@ Key configuration areas:
 - **Database**: MongoDB with authentication in production
 - **Cache**: Redis with authentication in production
 - **Security**: Token-based authentication and rate limiting
+- **No-Cache Builds**: Automatic cache clearing in deployment workflow
+
+The deployment workflow automatically:
+- Clears all Docker, Node.js, and application caches
+- Forces no-cache Docker builds using BuildKit
+- Ensures fresh code deployment without any cached artifacts
+- Removes all temporary files and build artifacts
 
 See [docker/README.md](docker/README.md) for complete Docker configuration guide.
 
@@ -157,6 +261,47 @@ HEX_ENCRYPTION_KEY=your-32-char-hex-encryption-key
 - **WS /metrics** - Real-time analytics and metrics dashboard
 
 For complete API documentation, see [docs/api.md](docs/api.md).
+
+## Database Query Architecture
+
+The project uses a modular factory pattern for database queries with dependency injection:
+
+### Query Factory Pattern
+
+```javascript
+// Query factories accept model and log dependencies
+const queries = require('./queries');
+
+// Initialize with dependencies
+const deviceQueries = queries.device(DeviceModel, logger);
+const requestQueries = queries.request(RequestModel, logger);
+const metricsQueries = queries.metrics(MetricsModel, logger);
+
+// Use operations by category
+await deviceQueries.crud.createOrUpdate(deviceData);
+await deviceQueries.find.byHex(hexId);
+await deviceQueries.stats.getCount();
+
+await requestQueries.crud.create(requestData);
+await requestQueries.find.byDevice(deviceId);
+await requestQueries.stats.getSuccessRate();
+
+await metricsQueries.crud.create(metricsData);
+```
+
+### Query Operations Structure
+
+Each query module is organized by operation type:
+
+- **crud.js**: Create, update, delete operations
+- **find.js**: Find and search operations  
+- **stats.js**: Statistics and aggregation operations
+
+This ensures:
+- **Single responsibility** - Each file handles one type of operation
+- **Dependency injection** - No hardcoded logging or model dependencies
+- **Testability** - Easy to mock dependencies for testing
+- **Consistency** - All error handling uses injected logger
 
 ## Usage Examples
 
@@ -222,14 +367,25 @@ npm run lint
 
 ### Project Structure
 
-The project follows a modular architecture pattern:
+The project follows a deep modular architecture pattern with strict naming conventions:
 
+- **All folder and file names are lowercase** - No hyphens, underscores, camelCase, or dots
+- **Maximum folder depth** - Extensive subfolders to categorize functionality
+- **Single responsibility** - Each file focuses on one specific function or feature
+- **Factory pattern for queries** - All database queries use dependency injection
+
+Key architectural principles:
 - **configs/**: Application configuration and settings
-- **models/**: MongoDB schema definitions and hooks
-- **queries/**: Database query operations and CRUD logic
-- **services/**: Business logic and service layer
-- **utils/**: Utility functions and helpers
-- **queues/**: Background job processing
+- **models/**: MongoDB schema definitions with automatic hex generation hooks
+- **queries/**: Database query factories accepting model and log dependencies
+  - **operations/**: Split by operation type (crud, find, stats, etc.)
+- **handlers/**: WebSocket event handlers split by responsibility
+- **services/**: Business logic services with health checks
+- **utils/**: Utility functions organized by domain (crypto, http, metrics, etc.)
+- **queues/**: Background job processing with Bull integration
+- **logging/**: Centralized logging with dependency injection (no console statements)
+
+All query modules now use passed-in logging instead of console statements, enabling better error tracking and debugging.
 
 ## Security Considerations
 
@@ -237,7 +393,11 @@ The project follows a modular architecture pattern:
 - **Input Validation**: All incoming data is validated before processing
 - **Rate Limiting**: Built-in rate limiting to prevent abuse
 - **Secure Headers**: Security headers are set for all HTTP responses
-- **Encrypted IDs**: All document IDs use encrypted hex generation
+- **Encrypted IDs**: All document IDs use robust hex generation with pre-validate hooks
+- **No-Cache Builds**: Deployment ensures no cached code or credentials in builds
+- **SSL/TLS**: Production deployment with proper certificate chain validation
+- **Environment Isolation**: Separate configurations for development and production
+- **Dependency Injection**: Logging and database connections use dependency injection pattern
 
 ## Performance
 
@@ -274,3 +434,25 @@ The project follows a modular architecture pattern:
 ### Debugging
 
 Enable debug logging by setting `NODE_ENV=development` in your environment variables.
+
+### Build and Deployment Issues
+
+1. **Cache-related problems**: Use `make clean-cache` or `make prod-build-no-cache` to force clean builds
+2. **Docker build failures**: Check Docker daemon and clear system cache with `make clean-docker-cache`
+3. **Stale code in production**: The deployment workflow automatically clears all caches and forces fresh builds
+4. **SSL certificate issues**: Use `make prod-verify-ssl` to check certificate chain
+5. **Environment configuration**: Use `make check-env` to verify environment file status
+
+### Development Workflow
+
+For development with cache clearing:
+```bash
+# Clean development environment
+make dev-clean
+
+# Rebuild without cache
+make dev-build-no-cache
+
+# Check logs for issues
+make dev-logs
+```

@@ -10,3 +10,23 @@ coverage
 .vscode
 .DS_Store
 *.log
+
+# Additional cache and temporary files
+package-lock.json
+yarn.lock
+.npm
+.yarn
+.cache
+tmp
+temp
+.tmp
+.temp
+dist
+build
+.next
+.nuxt
+.output
+logs
+*.tgz
+*.tar.gz
+.dockerignore.bak

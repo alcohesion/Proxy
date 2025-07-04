@@ -155,11 +155,50 @@ jobs:
           # Pull latest changes
           git pull origin main
           
-          # Navigate to docker directory
-          cd docker
+          # Clear all caches and force clean build
+          echo "Clearing all caches and preparing clean build..."
           
-          # Stop existing containers
+          # Stop existing containers first
+          cd docker
           make prod-stop || true
+          
+          # Clear Docker caches and unused images
+          echo "Cleaning Docker caches..."
+          make clean-docker-cache || true
+          
+          # Remove all containers and images related to this project
+          echo "Removing project containers and images..."
+          docker-compose -f prod/docker-compose.yml down --rmi all --volumes --remove-orphans || true
+          
+          # Clear Node.js caches in source directory
+          echo "Clearing Node.js caches..."
+          cd ..
+          rm -rf node_modules || true
+          rm -rf package-lock.json || true
+          rm -rf yarn.lock || true
+          rm -rf ~/.npm/_cacache || true
+          npm cache clean --force || true
+          
+          # Clear application logs and temp files
+          echo "Clearing application files..."
+          rm -rf logs/* || true
+          rm -rf tmp/* || true
+          rm -rf .next || true
+          rm -rf dist || true
+          rm -rf build || true
+          rm -rf src/node_modules || true
+          rm -rf src/package-lock.json || true
+          
+          # Clear any Docker build context cache
+          echo "Clearing Docker build context..."
+          cd docker
+          rm -rf .dockerignore.bak || true
+          
+          # Force rebuild with no cache using BuildKit
+          echo "Starting clean production build with no cache..."
+          export DOCKER_BUILDKIT=1
+          export BUILDKIT_PROGRESS=plain
+          make prod-build-no-cache
           
           # Start the production application
           make prod-start

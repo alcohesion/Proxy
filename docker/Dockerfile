@@ -18,8 +18,10 @@ WORKDIR /app
 # Copy package files
 COPY src/package*.json ./
 
-# Install dependencies and rebuild native modules
-RUN npm ci --only=production && \
+# Clear any existing cache and install dependencies
+RUN npm cache clean --force && \
+    rm -rf node_modules package-lock.json && \
+    npm ci --only=production && \
     npm rebuild uWebSockets.js --update-binary && \
     npm cache clean --force
 
