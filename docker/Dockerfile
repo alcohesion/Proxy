@@ -20,8 +20,8 @@ COPY src/package*.json ./
 
 # Clear any existing cache and install dependencies
 RUN npm cache clean --force && \
-    rm -rf node_modules package-lock.json && \
-    npm ci --only=production && \
+    rm -rf node_modules && \
+    npm install --only=production && \
     npm rebuild uWebSockets.js --update-binary && \
     npm cache clean --force
 
