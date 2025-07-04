@@ -76,9 +76,14 @@ try {
 
 // Initialize WebSocket endpoints with error handling
 try {
-	const proxyWs = new ProxyWebSocket(app, client);
-	const metricsWs = new MetricsWebSocket(app);
-	
+	const settings = {
+		compression: uWs.SHARED_COMPRESSOR,
+		maxPayloadLength: 16 * 1024 * 1024, // 16 MB
+		idleTimeout: 960 // 16 minutes
+	};
+	const proxyWs = new ProxyWebSocket(app, client, settings);
+	const metricsWs = new MetricsWebSocket(app, settings);
+
 	// Set metrics WebSocket instance for broadcasting
 	setMetricsWebSocket(metricsWs);
 	

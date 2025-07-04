@@ -1,3 +1,8 @@
 const operations = require('./operations');
 
-module.exports = operations;
+module.exports = Device => {
+  // Device query operations
+  return {
+    ...operations(Device)
+  };
+}

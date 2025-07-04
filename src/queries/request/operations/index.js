@@ -1,17 +1,14 @@
-const create = require('./create');
-const findbyhex = require('./findbyhex');
-const findmany = require('./findmany');
-const count = require('./count');
-const aggregate = require('./aggregate');
-const deletebyhex = require('./deletebyhex');
-const update = require('./update');
+const crud = require('./crud');
+const find = require('./find');
+const stats = require('./stats');
+const remove = require('./remove');
 
-module.exports = {
-	create,
-	findbyhex,
-	findmany,
-	count,
-	aggregate,
-	deletebyhex,
-	...update
-};
+module.exports = Request => {
+	// Request query operations
+	return {
+		count: stats.count(Request),
+		create: crud.create(Request),
+		find: find(Request),
+		deleteby: remove(Request)
+	};
+}

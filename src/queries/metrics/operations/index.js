@@ -1,13 +1,13 @@
-const create = require('./create');
-const findbyhex = require('./findbyhex');
-const findmany = require('./findmany');
-const count = require('./count');
-const deletebyhex = require('./deletebyhex');
+const crud = require('./crud');
+const find = require('./find');
+const stats = require('./stats');
+const remove = require('./remove');
 
-module.exports = {
-	create,
-	findbyhex,
-	findmany,
-	count,
-	deletebyhex
+module.exports = Device => {
+	return {
+		count: stats.count(Device),
+		create: crud.create(Device),
+		find: find(Device),
+		deleteby: remove(Device)
+	};
 };

@@ -1,11 +1,11 @@
-const create = require('./create');
+const crud = require('./crud');
 const find = require('./find');
-const count = require('./count');
-const update = require('./update');
+const stats = require('./stats');
 
-module.exports = {
-	...create,
-	...find,
-	...count,
-	...update
+module.exports = Device => {
+	return {
+		count: stats.count(Device),
+		create: crud.create(Device),
+		find: find(Device)
+	};
 };
