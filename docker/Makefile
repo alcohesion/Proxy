@@ -7,7 +7,7 @@ ENV ?= dev
 .PHONY: help start stop restart logs status rebuild clean shell ssl-setup ssl-renew
 .PHONY: check-env setup-env status-all clean-all
 .PHONY: dev-start dev-stop dev-restart dev-logs dev-status dev-rebuild dev-clean dev-shell
-.PHONY: prod-start prod-stop prod-restart prod-logs prod-status prod-rebuild prod-clean prod-shell
+.PHONY: prod-start prod-stop prod-restart prod-logs prod-logs-nginx prod-test-nginx prod-status prod-rebuild prod-clean prod-shell
 
 # Default target
 help:
@@ -34,6 +34,8 @@ help:
 	@echo "  make prod-stop               - Stop production environment"
 	@echo "  make prod-status             - Check production status"
 	@echo "  make prod-logs               - View production logs"
+	@echo "  make prod-logs-nginx         - View nginx logs (production)"
+	@echo "  make prod-test-nginx         - Test nginx config (production)"
 	@echo ""
 	@echo "SSL Management (production only):"
 	@echo "  make ssl-setup               - Setup SSL certificates (production)"
@@ -122,6 +124,15 @@ prod-restart:
 
 prod-logs:
 	@$(MAKE) ENV=prod logs
+
+prod-logs-nginx:
+	@echo "Viewing nginx logs for production environment..."
+	@cd prod && docker compose logs nginx
+
+prod-test-nginx:
+	@echo "Testing nginx configuration for production environment..."
+	@cd prod && docker compose run --rm --entrypoint "nginx -t" nginx || \
+		echo "Error: nginx config test failed. Check the configuration files."
 
 prod-status:
 	@$(MAKE) ENV=prod status
