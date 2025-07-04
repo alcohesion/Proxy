@@ -1,351 +1,215 @@
 # Docker Deployment
 
-This directory contains the Docker deployment configuration for the proxy server application, converted from the Fly.io deployment setup.
+This directory contains the Docker deployment configurations for the proxy server application, organized by environment.
+
+## Structure
+
+```
+docker/
+├── dev/                    # Development environment
+│   ├── docker-compose.yml  # HTTP-only services
+│   ├── .env.example        # Development configuration template
+│   ├── nginx/              # Development nginx config
+│   └── README.md           # Development documentation
+├── prod/                   # Production environment  
+│   ├── docker-compose.yml  # HTTPS services with SSL
+│   ├── .env.example        # Production configuration template
+│   ├── nginx/              # Production nginx config with SSL
+│   │   └── ssl/            # SSL certificates directory
+│   └── README.md           # Production documentation
+├── Dockerfile              # Common application image
+├── redis.conf              # Common Redis configuration
+├── init.sh                 # Common initialization script
+├── manage.sh               # Environment switcher script (alternative)
+├── Makefile                # Main Makefile with --dev/--prod flags
+└── README.md               # This file
+```
 
 ## Architecture
 
-The Docker deployment uses a multi-container architecture with the following services:
+Both environments use a multi-container architecture:
 
-- **nginx** - Reverse proxy and load balancer
-- **app** - Main Node.js application
-- **mongo** - MongoDB database
-- **redis** - Redis cache and queue storage
+- **nginx** - Reverse proxy and load balancer (SSL in production)
+- **app** - Main Node.js application  
+- **mongo** - MongoDB database (with auth in production)
+- **redis** - Redis cache and queue storage (with auth in production)
+- **certbot** - SSL certificate management (production only)
 
 ## Prerequisites
 
 - Docker Engine 20.10+
-- Docker Compose 2.0+ (or docker-compose 1.29+)
+- Docker Compose 2.0+
 - At least 2GB of available memory
-- Ports 80, 443, 6379, 8080, and 27017 available
+- Ports 80, 443 available
 
 ## Quick Start
 
-1. **Clone and navigate to the project:**
-   ```bash
-   cd /path/to/Tunnel/docker
-   ```
+### Development Environment
+```bash
+cd docker
+make setup-env        # Create environment files
+make start            # Start development (default)
+```
+Access: http://localhost
 
-2. **Create environment file:**
-   ```bash
-   cp .env.template .env
-   # Edit .env with your configuration
-   ```
+### Production Environment
+```bash
+cd docker
+make setup-env        # Create environment files
+# Edit prod/.env with your domain and strong passwords
+make start --prod     # Start production
+make ssl-setup --prod # Setup SSL certificates  
+make restart --prod   # Restart with SSL
+```
+Access: https://yourdomain.com
 
-3. **Start the services:**
-   ```bash
-   docker compose up -d
-   # Or using make
-   make start
-   ```
+## Environment Differences
 
-4. **Check service status:**
-   ```bash
-   docker compose ps
-   # Or using make
-   make status
-   ```
+| Feature | Development | Production |
+|---------|-------------|------------|
+| SSL/TLS | No | Yes (Let's Encrypt) |
+| Authentication | No | Yes (MongoDB + Redis) |
+| Logging | Debug | Info/Warn |
+| Rate Limiting | Relaxed | Strict |
+| Security Headers | Basic | Full CSP + HSTS |
+| Resource Limits | Small | Optimized |
 
-5. **View logs:**
-   ```bash
-   docker compose logs -f
-   # Or using make
-   make logs
-   ```
+## Commands
 
-## Configuration
+### Main Makefile Commands
+
+The main Makefile uses environment flags for clean syntax:
+
+```bash
+# Development (default)
+make start              # Start development environment
+make stop               # Stop development environment  
+make logs               # View development logs
+make status             # Check development status
+make restart            # Restart development
+make clean              # Clean development environment
+make shell              # Open shell in development app
+
+# Production (with --prod flag)
+make start --prod       # Start production environment
+make stop --prod        # Stop production environment
+make logs --prod        # View production logs  
+make status --prod      # Check production status
+make restart --prod     # Restart production
+make clean --prod       # Clean production environment
+make shell --prod       # Open shell in production app
+
+# SSL Management (production only)
+make ssl-setup --prod   # Setup SSL certificates with Let's Encrypt
+make ssl-renew --prod   # Renew SSL certificates
+
+# Environment Setup
+make setup-env          # Create .env files from templates
+make check-env          # Check if .env files exist
+make status-all         # Show status of both environments
+make clean-all          # Clean both environments (with confirmation)
+```
+
+### Alternative: Environment Switcher Script
+
+You can also use the `manage.sh` script for explicit environment management:
+
+```bash
+./manage.sh start dev         # Start development
+./manage.sh start prod        # Start production  
+./manage.sh ssl-setup         # Setup SSL for production
+./manage.sh logs dev          # View development logs
+```
+
+## SSL Certificate Setup
+
+For production environments, SSL certificates are managed automatically:
+
+### Automatic Setup (Let's Encrypt)
+1. Edit `prod/.env` with your domain and email
+2. Run `make ssl-setup --prod`
+3. Restart: `make restart --prod`
+
+### Certificate Renewal
+SSL certificates auto-renew. For manual renewal:
+```bash
+make ssl-renew --prod
+```
+
+## Configuration Files
 
 ### Environment Variables
+- `dev/.env` - Development configuration
+- `prod/.env` - Production configuration (passwords, domain, SSL)
 
-Copy `.env.example` to `.env` and customize:
-
-### Service Configuration
-
-- **nginx**: Configuration files in `nginx/`
-- **redis**: Configuration in `redis.conf`
-- **app**: Environment variables and Docker build context
-- **mongo**: Uses official MongoDB 7.0 image
-
-## Docker Commands
-
-### Using Make (Recommended)
-
-The project includes a Makefile for convenient command shortcuts:
-
-```bash
-# Start all services
-make start
-
-# Stop all services
-make stop
-
-# Restart all services
-make restart
-
-# View logs (follow mode)
-make logs
-
-# Check service status
-make status
-
-# Rebuild and restart services
-make rebuild
-
-# Clean up containers and volumes
-make clean
-
-# Open shell in app container
-make shell
-
-# Show all available commands
-make help
-```
-
-### Direct Docker Compose Commands
-
-```bash
-# Start all services
-docker compose up -d
-
-# Stop all services
-docker compose down
-
-# Restart all services
-docker compose restart
-
-# View logs
-docker compose logs -f
-
-# View logs for specific service
-docker compose logs -f app
-
-# Check service status
-docker compose ps
-```
-
-### Development Commands
-
-```bash
-# Rebuild and restart services
-docker compose down
-docker compose build --no-cache
-docker compose up -d
-
-# Access container shell
-docker compose exec app /bin/sh
-docker compose exec mongo mongosh
-docker compose exec redis redis-cli
-
-# View resource usage
-docker compose top
-```
-
-### Maintenance Commands
-
-```bash
-# Clean up containers, networks, and volumes
-docker compose down -v --remove-orphans
-docker system prune -f
-
-# Update images
-docker compose pull
-docker compose up -d
-
-# View detailed service info
-docker compose config
-```
-
-## Service Details
-
-### Application (app)
-- **Port**: 8080
-- **Health Check**: `/health` endpoint
-- **Dependencies**: MongoDB, Redis
-- **Image**: Custom Node.js 22 Alpine-based image
-
-### Nginx (nginx)
-- **Ports**: 80, 443
-- **Purpose**: Reverse proxy to app service
-- **Configuration**: `nginx/nginx.conf`, `nginx/default.conf`
-
-### MongoDB (mongo)
-- **Port**: 27017
-- **Database**: `proxy`
-- **Persistence**: `mongo-data` volume
-- **Health Check**: `mongosh --eval "db.adminCommand('ping')"`
-
-### Redis (redis)
-- **Port**: 6379
-- **Configuration**: `redis.conf`
-- **Persistence**: `redis-data` volume
-- **Health Check**: `redis-cli ping`
-
-## Accessing Services
-
-- **Application**: http://localhost:80 (via nginx)
-- **Application (HTTPS)**: https://localhost:443 (via nginx, if SSL configured)
-
-### Internal Services (Docker Network Only)
-
-The following services are only accessible within the Docker network for security:
-- **Direct App**: http://app:8080 (internal)
-- **MongoDB**: mongodb://mongo:27017 (internal)
-- **Redis**: redis://redis:6379 (internal)
-
-### Development Access
-
-For development purposes, you can temporarily expose internal services by adding port mappings to docker-compose.yml:
-
-```yaml
-# Add to respective services if needed for development
-ports:
-  - "8080:8080"  # Direct app access
-  - "27017:27017"  # MongoDB access
-  - "6379:6379"  # Redis access
-```
-
-## Monitoring and Logs
-
-### View Logs
-```bash
-# All services
-docker compose logs -f
-
-# Specific service
-docker compose logs -f app
-docker compose logs -f nginx
-docker compose logs -f mongo
-docker compose logs -f redis
-
-# Last N lines
-docker compose logs --tail=100 app
-```
-
-### Health Checks
-All services include health checks that can be monitored:
-```bash
-# Check health status
-docker compose ps
-
-# Detailed health info
-docker inspect $(docker compose ps -q app) | jq '.[0].State.Health'
-```
-
-## Volumes and Data Persistence
-
-The following volumes are created for data persistence:
-- `mongo-data`: MongoDB database files
-- `mongo-config`: MongoDB configuration
-- `mongo-logs`: MongoDB logs
-- `redis-data`: Redis persistence files
-- `app-logs`: Application logs
-- `nginx-logs`: Nginx access and error logs
-
-## Networking
-
-All services communicate through the `proxy-network` bridge network:
-- Internal service discovery via service names
-- External access via published ports
-- Isolated from other Docker networks
+### Service Configuration  
+- `redis.conf` - Redis configuration (shared)
+- `init.sh` - Database initialization script (shared)
+- `Dockerfile` - Application container image (shared)
+- `dev/nginx/` - Development nginx configuration
+- `prod/nginx/` - Production nginx configuration with SSL
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Services not starting:**
-   ```bash
-   docker compose logs
-   docker compose ps
-   ```
-
-2. **Port conflicts:**
-   ```bash
-   # Check port usage
-   netstat -tulpn | grep :80
-   # Modify ports in docker-compose.yml
-   ```
-
-3. **Database connection issues:**
-   ```bash
-   # Check MongoDB
-   docker compose exec mongo mongosh --eval "db.adminCommand('ping')"
-   
-   # Check Redis
-   docker compose exec redis redis-cli ping
-   ```
-
-4. **Application not responding:**
-   ```bash
-   # Check app logs
-   docker compose logs app
-   
-   # Check health endpoint via nginx
-   curl http://localhost:80/health
-   
-   # Check direct app health (from within network)
-   docker compose exec nginx curl http://app:8080/health
-   ```
-
-### Performance Monitoring
-
+**Environment files missing:**
 ```bash
-# Resource usage
-docker stats
-
-# Service-specific stats
-docker compose top
-
-# Disk usage
-docker system df
+make check-env    # Check which files are missing
+make setup-env    # Create missing files from templates
 ```
 
-## Security Considerations
-
-- Services run as non-root users where possible
-- Internal network isolation
-- No default passwords (configure in .env)
-- Security headers configured in nginx
-- Health checks prevent exposure of unhealthy services
-
-## Scaling
-
-To scale the application:
+**SSL setup fails:**
 ```bash
-# Scale app service
-docker compose up -d --scale app=3
-
-# Load balancing handled by nginx
+# Ensure domain points to your server
+# Check DNS with: dig yourdomain.com  
+# Verify ports 80/443 are open
+make ssl-setup --prod
 ```
 
-## Backup and Restore
-
-### Database Backup
+**Services won't start:**
 ```bash
-# MongoDB backup
-docker compose exec mongo mongodump --out /tmp/backup
-docker compose cp mongo:/tmp/backup ./mongodb-backup
-
-# Redis backup
-docker compose exec redis redis-cli BGSAVE
+make status --dev     # Check development status
+make status --prod    # Check production status
+make logs --dev       # View development logs
+make logs --prod      # View production logs
 ```
 
-### Volume Backup
+### Accessing Services
+
+| Environment | Application | MongoDB | Redis |
+|-------------|-------------|---------|-------|
+| Development | http://localhost | Internal only | Internal only |
+| Production | https://yourdomain.com | Internal only | Internal only |
+
+### Data Persistence
+
+All data is stored in Docker volumes:
+- `mongo-data` - MongoDB database files
+- `redis-data` - Redis persistence files  
+- `app-logs` - Application log files
+- `certbot-conf` - SSL certificates (production)
+
+To backup data:
 ```bash
-# Backup all volumes
-docker run --rm -v proxy_mongo-data:/data -v $(pwd):/backup alpine tar czf /backup/mongo-backup.tar.gz /data
+docker volume ls                        # List volumes
+docker run --rm -v mongo-data:/data -v $(pwd):/backup alpine tar czf /backup/mongo-backup.tar.gz /data
 ```
 
-## Migration from Fly.io
+## Security Notes
 
-This Docker deployment maintains compatibility with the Fly.io deployment:
-- Same environment variables
-- Same service architecture
-- Same port configurations
-- Same health check endpoints
+### Development
+- No authentication on services
+- HTTP only (no encryption)
+- Debug logging enabled
+- Relaxed security headers
 
-## Support
+### Production  
+- MongoDB authentication required
+- Redis authentication required
+- HTTPS with strong SSL configuration
+- Security headers and CSP enabled
+- Rate limiting active
+- Production logging only
 
-For issues or questions:
-1. Check the logs: `docker compose logs -f`
-2. Verify service health: `docker compose ps`
-3. Check resource usage: `docker stats`
-4. Review configuration: `docker compose config`
+**Important:** Always change default passwords in `prod/.env` before deployment!
