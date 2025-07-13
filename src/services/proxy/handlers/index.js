@@ -30,6 +30,35 @@ module.exports = (app, client, queries, log, proxyConfig) => {
 		// Log incoming HTTP request
 		log.request(`HTTP request received - Method: ${requestData.method}, Path: ${requestData.path}, IP: ${requestData.headers['x-forwarded-for'] || requestData.headers['x-real-ip'] || 'unknown'}`);
 
+		// For methods that might have a body, set up body reading IMMEDIATELY before any async operations
+		let bodyPromise = null;
+		if (requestData.method !== 'GET' && requestData.method !== 'HEAD' && requestData.method !== 'DELETE') {
+			console.log(`[DEBUG] Setting up immediate body reading for ${requestData.method}`);
+			bodyPromise = new Promise((resolve) => {
+				let body = '';
+				let hasReceivedData = false;
+				
+				res.onData((chunk, isLast) => {
+					hasReceivedData = true;
+					body += Buffer.from(chunk).toString();
+					console.log(`[DEBUG] Received data chunk for ${requestData.method}, isLast: ${isLast}, bodyLength: ${body.length}`);
+					
+					if (isLast) {
+						console.log(`[DEBUG] Body reading complete for ${requestData.method}, bodyLength: ${body.length}`);
+						resolve(body);
+					}
+				});
+				
+				// Fallback timeout
+				setTimeout(() => {
+					if (!hasReceivedData) {
+						console.log(`[DEBUG] No data received within 2s for ${requestData.method}, resolving with empty body`);
+						resolve('');
+					}
+				}, 2000);
+			});
+		}
+
 		try {
 			// Now we can safely do async operations
 			const { device, request } = await getDevice(requestData, { device: createOrUpdate, request: createRequest }, log)
@@ -40,15 +69,19 @@ module.exports = (app, client, queries, log, proxyConfig) => {
 			// Store response object
 			client.addPendingRequest(request.hex, { res, request, startTime: Date.now() });
 
-			// Create the process function with bound parameters
-			const boundProcessRequest = async (body = '') => {
-				console.log(`[DEBUG] boundProcessRequest called for ${request.method} - RequestID: ${request.hex}, bodyLength: ${body.length}`);
-				await processRequest(body, request, client, log, queries, sendResponse, res, abortedState.aborted);
-			};
+			// Get the body (either immediately for GET/HEAD/DELETE or wait for promise)
+			let body = '';
+			if (bodyPromise) {
+				console.log(`[DEBUG] Waiting for body data for ${request.method} - RequestID: ${request.hex}`);
+				body = await bodyPromise;
+				console.log(`[DEBUG] Body received for ${request.method} - RequestID: ${request.hex}, bodyLength: ${body.length}`);
+			} else {
+				console.log(`[DEBUG] No body expected for ${request.method} - RequestID: ${request.hex}`);
+			}
 
-			// Handle request body reading
-			console.log(`[DEBUG] Starting body reading for ${request.method} - RequestID: ${request.hex}`);
-			readRequestBody(res, request, boundProcessRequest);
+			// Process the request with the body
+			console.log(`[DEBUG] Processing request for ${request.method} - RequestID: ${request.hex}, bodyLength: ${body.length}`);
+			await processRequest(body, request, client, log, queries, sendResponse, res, abortedState.aborted);
 
 			// Set up abort and timeout handlers
 			setupAbortHandler(res, client, request, queries, log);
