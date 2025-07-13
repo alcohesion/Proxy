@@ -18,7 +18,27 @@ class ClientManager {
 	}
 
 	isClientConnected() {
-		return this.localClient && this.localClient.authenticated;
+		if (!this.localClient) {
+			return false;
+		}
+		
+		// Check if client is authenticated
+		if (!this.localClient.authenticated) {
+			return false;
+		}
+		
+		// Try to check if WebSocket is still open using uWebSockets.js methods
+		try {
+			// If we can get buffered amount, connection is likely open
+			if (typeof this.localClient.getBufferedAmount === 'function') {
+				this.localClient.getBufferedAmount();
+			}
+			return true;
+		} catch (error) {
+			// If any WebSocket method throws, connection is closed
+			console.warn('Client connection test failed:', error.message);
+			return false;
+		}
 	}
 
 	addPendingRequest(requestId, data) {

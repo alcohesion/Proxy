@@ -79,7 +79,7 @@ try {
 	const settings = {
 		compression: uWs.SHARED_COMPRESSOR,
 		maxPayloadLength: 16 * 1024 * 1024, // 16 MB
-		idleTimeout: 960 // 16 minutes
+		idleTimeout: 0 // Disable idle timeout to prevent auto-disconnect
 	};
 	const proxyWs = new ProxyWebSocket(app, client, settings);
 	const metricsWs = new MetricsWebSocket(app, settings);

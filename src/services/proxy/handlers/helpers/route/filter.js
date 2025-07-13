@@ -1,8 +1,6 @@
-// Filter routes to skip health and metrics endpoints
+// Filter routes to skip only health endpoints - forward ALL other requests
 const shouldSkipRoute = (url) => {
-	return url.startsWith('/metrics') || 
-		   url.startsWith('/health') || 
-		   url.startsWith('/status');
+	return url.startsWith('/health');
 };
 
 module.exports = { shouldSkipRoute };
