@@ -10,6 +10,22 @@ const processResponseBody = (body, headers = {}) => {
 		return body;
 	}
 	
+	// Handle byte arrays (convert to string)
+	if (Array.isArray(body) && body.every(item => typeof item === 'number' && item >= 0 && item <= 255)) {
+		// Convert byte array to string
+		try {
+			return Buffer.from(body).toString('utf8');
+		} catch (error) {
+			console.warn('Failed to convert byte array to string:', error);
+			return String.fromCharCode(...body);
+		}
+	}
+	
+	// Handle Buffer objects
+	if (Buffer.isBuffer(body)) {
+		return body.toString('utf8');
+	}
+	
 	// Get content type (case insensitive)
 	const contentType = Object.keys(headers).find(key => 
 		key.toLowerCase() === 'content-type'
