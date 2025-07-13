@@ -1,11 +1,7 @@
-// Read version from package.json
-const packageJson = require('../package.json');
-
 const app = {
 	host: process.env.HOST || '0.0.0.0',
 	port: parseInt(process.env.PORT) || 8080,
-	env: process.env.NODE_ENV || 'development',
-	version: packageJson.version
+	env: process.env.NODE_ENV || 'development'
 };
 
 const security = {

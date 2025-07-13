@@ -9,7 +9,7 @@ module.exports = async (ws, data, log, queries) => {
 	// Handle tunnel message format
 	let queryType, queryData;
 	
-	if (data.message && data.message.payload && data.message.payload.type === "Control") {
+	if (data.message && data.message.payload && data.message.payload.kind === "Control") {
 		// Extract from tunnel message format
 		const controlData = data.message.payload.data;
 		queryType = controlData.queryType;

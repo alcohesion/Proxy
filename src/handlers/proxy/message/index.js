@@ -38,12 +38,12 @@ module.exports = async (ws, message, isBinary, log, queries) => {
 		// Handle tunnel message format from client.md
 		if (data.message && data.message.payload) {
 			const messageType = data.message.metadata.message_type;
-			const payloadType = data.message.payload.type;
+			const payloadKind = data.message.payload.kind;
 			
-			if (payloadType === "Http") {
-				const httpDataType = data.message.payload.data.type;
+			if (payloadKind === "HTTP") {
+				const httpDataKind = data.message.payload.data.kind;
 				
-				if (messageType === "http_response" && httpDataType === "Response") {
+				if (messageType === "http_response" && httpDataKind === "Response") {
 					// Handle HTTP response
 					await handleResponse(ws, data, log, queries);
 					return;
@@ -51,12 +51,12 @@ module.exports = async (ws, message, isBinary, log, queries) => {
 					// Handle HTTP error response
 					await handleError(ws, data, log, queries);
 					return;
-				} else if (messageType === "http_request" && httpDataType === "Request") {
+				} else if (messageType === "http_request" && httpDataKind === "Request") {
 					// Handle HTTP request (though this is unusual for local client to send)
 					await handleRequest(ws, data, log, queries);
 					return;
 				}
-			} else if (payloadType === "Control") {
+			} else if (payloadKind === "Control") {
 				// Control messages are not handled in proxy WebSocket
 				// Use metrics WebSocket for status queries and other control operations
 				log.warn(`Control messages should use metrics WebSocket endpoint`);
@@ -65,7 +65,7 @@ module.exports = async (ws, message, isBinary, log, queries) => {
 				return;
 			}
 			
-			log.warn(`Unknown tunnel message type: ${messageType}, payload type: ${payloadType}`);
+			log.warn(`Unknown tunnel message type: ${messageType}, payload kind: ${payloadKind}`);
 			const errorMessage = tunnel.createErrorMessage('Unknown tunnel message format', 'UNKNOWN_TUNNEL_TYPE');
 			ws.send(JSON.stringify(errorMessage));
 			return;

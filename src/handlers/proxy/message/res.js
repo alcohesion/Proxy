@@ -1,6 +1,6 @@
 module.exports = async (ws, data, log, queries) => {
 	// Handle tunnel message format from client.md only
-	if (!data.message || !data.message.payload || data.message.payload.type !== "Http") {
+	if (!data.message || !data.message.payload || data.message.payload.kind !== "HTTP") {
 		log.warn('Invalid response message format - tunnel format required');
 		return;
 	}

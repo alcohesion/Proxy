@@ -1,8 +1,8 @@
 // Protocol configuration for tunnel messages
-const { app } = require('./app');
+const packageJson = require('../package.json');
 
 const protocol = {
-	version: app.version,
+	version: packageJson.version, // Only place that reads version from package.json
 	priority: {
 		default: 'normal',
 		values: ['low', 'normal', 'high', 'critical']

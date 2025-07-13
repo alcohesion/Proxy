@@ -22,7 +22,7 @@ const createTunnelMessage = (messageType, payloadType, data, correlationId = nul
 				...(correlationId && { correlation_id: correlationId })
 			},
 			payload: {
-				type: payloadType,
+				kind: payloadType,
 				data: data
 			}
 		}
@@ -30,8 +30,8 @@ const createTunnelMessage = (messageType, payloadType, data, correlationId = nul
 };
 
 const createHttpRequestMessage = (method, url, headers, body, requestId) => {
-	return createTunnelMessage("http_request", "Http", {
-		type: "Request",
+	return createTunnelMessage("http_request", "HTTP", {
+		kind: "Request",
 		method: method,
 		url: url,
 		headers: headers,
@@ -41,8 +41,8 @@ const createHttpRequestMessage = (method, url, headers, body, requestId) => {
 };
 
 const createHttpResponseMessage = (status, statusText, headers, body, requestId, correlationId) => {
-	return createTunnelMessage("http_response", "Http", {
-		type: "Response",
+	return createTunnelMessage("http_response", "HTTP", {
+		kind: "Response",
 		status: status,
 		status_text: statusText,
 		headers: headers,
@@ -53,7 +53,7 @@ const createHttpResponseMessage = (status, statusText, headers, body, requestId,
 
 const createAuthMessage = (status, message) => {
 	return createTunnelMessage("auth", "Control", {
-		type: "Authentication",
+		kind: "Authentication",
 		status: status,
 		message: message,
 		timestamp: new Date().toISOString()
@@ -62,7 +62,7 @@ const createAuthMessage = (status, message) => {
 
 const createErrorMessage = (error, code, requestId = null) => {
 	return createTunnelMessage("error", "Control", {
-		type: "Error",
+		kind: "Error",
 		error: error,
 		code: code,
 		...(requestId && { requestId: requestId }),
@@ -97,7 +97,7 @@ const createCustomTunnelMessage = (messageType, payloadType, data, options = {})
 				...(correlationId && { correlation_id: correlationId })
 			},
 			payload: {
-				type: payloadType,
+				kind: payloadType,
 				data: data
 			}
 		}

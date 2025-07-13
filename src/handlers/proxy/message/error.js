@@ -1,6 +1,6 @@
 module.exports = async (ws, data, log, queries) => {
 	// Handle tunnel message format for errors from client.md only
-	if (!data.message || !data.message.payload || data.message.payload.type !== "Http") {
+	if (!data.message || !data.message.payload || data.message.payload.kind !== "HTTP") {
 		log.warn('Invalid error message format - tunnel format required');
 		return;
 	}
@@ -11,7 +11,7 @@ module.exports = async (ws, data, log, queries) => {
 	let errorMessage;
 	let code;
 
-	if (httpData.type === "Response") {
+	if (httpData.kind === "Response") {
 		requestId = httpData.requestId;
 		code = httpData.status;
 		errorMessage = httpData.body ? (httpData.body.error || 'Unknown error') : 'Server error';

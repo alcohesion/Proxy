@@ -2,21 +2,19 @@
 
 This document outlines the required message format for the tunnel server to ensure proper communication with the Pori proxy client.
 
-## Current Issue
+## Current Issues
 
-The proxy client is failing to parse incoming messages because required fields are missing from the server's message format.
+The proxy client is failing to parse incoming messages because the server's message format doesn't match the expected client protocol structure.
 
-**Error encountered:**
+**Common parsing errors:**
 
-```
-missing field 'version' at line 1 column 190
-```
+- Missing required metadata fields (`version`, `priority`, `delivery_mode`, `encoding`)
+- Incorrect field names (`type` instead of `kind`)
+- Wrong case sensitivity (`Http` instead of `HTTP`)
 
 ## Required Message Structure
 
-All messages sent from the server must include the following structure:
-
-### Complete Message Format
+### HTTP Request Message
 
 ```json
 {
@@ -35,14 +33,15 @@ All messages sent from the server must include the following structure:
       "encoding": "json"
     },
     "payload": {
-      "type": "Http",
+      "kind": "HTTP",
       "data": {
-        "type": "Request",
+        "kind": "Request",
         "method": "GET",
         "url": "/hh",
         "headers": {
           "connection": "upgrade",
-          "host": "pay.vpu.world"
+          "host": "pay.vpu.world",
+          "user-agent": "Mozilla/5.0..."
         },
         "body": null,
         "requestId": "R0X39398B820AB9"
@@ -52,168 +51,201 @@ All messages sent from the server must include the following structure:
 }
 ```
 
-## Missing Fields in Current Server Implementation
-
-The server is currently NOT sending these required fields:
-
-### 1. Message Metadata Fields
-
-| Field | Type | Required | Description | Example Value |
-|-------|------|----------|-------------|---------------|
-| `version` | string | **YES** | Protocol version | `"1.0.0"` |
-| `priority` | string | **YES** | Message priority | `"normal"` |
-| `delivery_mode` | string | **YES** | Delivery guarantee | `"at_least_once"` |
-| `encoding` | string | **YES** | Message encoding format | `"json"` |
-
-### 2. Valid Enum Values
-
-#### Priority Values
-
-- `"low"`
-- `"normal"` *(recommended default)*
-- `"high"`
-- `"critical"`
-
-#### Delivery Mode Values
-
-- `"fire_and_forget"`
-- `"at_most_once"`
-- `"at_least_once"` *(recommended default)*
-- `"exactly_once"`
-
-#### Encoding Values
-
-- `"json"` *(recommended default)*
-- `"binary"`
-- `"compressed"`
-
-## Server Implementation Changes Required
-
-### Before (Current - Failing)
+### Authentication Message
 
 ```json
 {
   "envelope": {
-    "tunnel_id": "tunnel_1752411737413",
-    "client_id": "client_msg_e262b1fcd5f749a7"
+    "tunnel_id": "tunnel_1752412958539",
+    "client_id": "client_msg_26a040a2f1491df0"
   },
   "message": {
     "metadata": {
-      "id": "msg_e262b1fcd5f749a7",
-      "message_type": "http_request",
-      "timestamp": 1752411737413
-    },
-    "payload": {
-      "type": "Http",
-      "data": {
-        "type": "Request",
-        "method": "GET",
-        "url": "/hh",
-        "headers": { /* ... */ },
-        "body": null,
-        "requestId": "R0X39398B820AB9"
-      }
-    }
-  }
-}
-```
-
-### After (Required - Working)
-
-```json
-{
-  "envelope": {
-    "tunnel_id": "tunnel_1752411737413",
-    "client_id": "client_msg_e262b1fcd5f749a7"
-  },
-  "message": {
-    "metadata": {
-      "id": "msg_e262b1fcd5f749a7",
-      "message_type": "http_request",
+      "id": "msg_26a040a2f1491df0",
+      "message_type": "auth",
       "version": "1.0.0",
-      "timestamp": 1752411737413,
+      "timestamp": 1752412958539,
       "priority": "normal",
       "delivery_mode": "at_least_once",
       "encoding": "json"
     },
     "payload": {
-      "type": "Http",
+      "kind": "Control",
       "data": {
-        "type": "Request",
-        "method": "GET",
-        "url": "/hh",
-        "headers": { /* ... */ },
-        "body": null,
-        "requestId": "R0X39398B820AB9"
+        "kind": "Authentication",
+        "status": "authenticated",
+        "message": "Connection established successfully",
+        "timestamp": "2025-07-13T13:22:38.539Z"
       }
     }
   }
 }
 ```
 
-## Message Types That Need Updates
+## Required Fields
 
-All message types sent by the server require these metadata fields:
+### Message Metadata (ALL REQUIRED)
 
-1. **HTTP Request Messages** (`message_type: "http_request"`)
-2. **Authentication Messages** (`message_type: "auth"`)
-3. **Control Messages** (`message_type: "control"`)
-4. **Error Messages** (`message_type: "error"`)
+| Field | Type | Description | Example Value |
+|-------|------|-------------|---------------|
+| `id` | string | Unique message identifier | `"msg_e262b1fcd5f749a7"` |
+| `message_type` | string | Type of message | `"http_request"`, `"auth"` |
+| `version` | string | Protocol version | `"1.0.0"` |
+| `timestamp` | number | Unix timestamp in milliseconds | `1752411737413` |
+| `priority` | string | Message priority | `"normal"` |
+| `delivery_mode` | string | Delivery guarantee | `"at_least_once"` |
+| `encoding` | string | Message encoding format | `"json"` |
 
-## Recommended Server Code Changes
+### Enum Values (CASE SENSITIVE)
 
-### Metadata Template (Language Agnostic)
+**Priority Values:**
+
+- `"low"`
+- `"normal"` *(recommended)*
+- `"high"`
+- `"critical"`
+
+**Delivery Mode Values:**
+
+- `"fire_and_forget"`
+- `"at_most_once"`
+- `"at_least_once"` *(recommended)*
+- `"exactly_once"`
+
+**Encoding Values:**
+
+- `"json"` *(recommended)*
+- `"binary"`
+- `"compressed"`
+
+### Payload Structure
+
+**HTTP Messages:**
+
+- `payload.kind` = `"HTTP"` (uppercase)
+- `payload.data.kind` = `"Request"` or `"Response"`
+- `payload.data.requestId` = string (required for all HTTP messages)
+
+**Control Messages:**
+
+- `payload.kind` = `"Control"`
+- `payload.data.kind` = `"Authentication"`, `"Ping"`, `"Pong"`, etc.
+
+## Server Implementation Template
+
+### JavaScript/Node.js
 
 ```javascript
-// Example in JavaScript/Node.js
-const createMessageMetadata = (messageId, messageType) => ({
-  id: messageId,
-  message_type: messageType,
-  version: "1.0.0",
-  timestamp: Date.now(),
-  priority: "normal",
-  delivery_mode: "at_least_once",
-  encoding: "json"
+function createMessage(messageType, payloadType, payloadData) {
+  return {
+    envelope: {
+      tunnel_id: `tunnel_${Date.now()}`,
+      client_id: `client_msg_${generateId()}`
+    },
+    message: {
+      metadata: {
+        id: `msg_${generateId()}`,
+        message_type: messageType,
+        version: "1.0.0",
+        timestamp: Date.now(),
+        priority: "normal",
+        delivery_mode: "at_least_once",
+        encoding: "json"
+      },
+      payload: {
+        kind: payloadType,
+        data: payloadData
+      }
+    }
+  };
+}
+
+// HTTP Request Example
+const httpRequest = createMessage("http_request", "HTTP", {
+  kind: "Request",
+  method: "GET",
+  url: "/api/users",
+  headers: { "host": "example.com" },
+  body: null,
+  requestId: generateRequestId()
 });
 
-// Usage
-const metadata = createMessageMetadata("msg_123", "http_request");
+// Authentication Example
+const authMessage = createMessage("auth", "Control", {
+  kind: "Authentication",
+  status: "authenticated",
+  message: "Connection established successfully",
+  timestamp: new Date().toISOString()
+});
 ```
+
+### Python
 
 ```python
-# Example in Python
-def create_message_metadata(message_id, message_type):
+import time
+import json
+from typing import Dict, Any
+
+def create_message(message_type: str, payload_type: str, payload_data: Dict[str, Any]) -> Dict[str, Any]:
     return {
-        "id": message_id,
-        "message_type": message_type,
-        "version": "1.0.0",
-        "timestamp": int(time.time() * 1000),
-        "priority": "normal",
-        "delivery_mode": "at_least_once",
-        "encoding": "json"
+        "envelope": {
+            "tunnel_id": f"tunnel_{int(time.time() * 1000)}",
+            "client_id": f"client_msg_{generate_id()}"
+        },
+        "message": {
+            "metadata": {
+                "id": f"msg_{generate_id()}",
+                "message_type": message_type,
+                "version": "1.0.0",
+                "timestamp": int(time.time() * 1000),
+                "priority": "normal",
+                "delivery_mode": "at_least_once",
+                "encoding": "json"
+            },
+            "payload": {
+                "kind": payload_type,
+                "data": payload_data
+            }
+        }
     }
 
-# Usage
-metadata = create_message_metadata("msg_123", "http_request")
+# HTTP Request Example
+http_request = create_message("http_request", "HTTP", {
+    "kind": "Request",
+    "method": "GET",
+    "url": "/api/users",
+    "headers": {"host": "example.com"},
+    "body": None,
+    "requestId": generate_request_id()
+})
+
+# Authentication Example
+auth_message = create_message("auth", "Control", {
+    "kind": "Authentication",
+    "status": "authenticated",
+    "message": "Connection established successfully",
+    "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+})
 ```
+
+## Critical Requirements Summary
+
+**MUST FIX for proxy to work:**
+
+1. ✅ **Add missing metadata fields:** `version`, `priority`, `delivery_mode`, `encoding`
+2. ✅ **Use correct case:** `"HTTP"` (not `"Http"`), lowercase enums (`"normal"`, `"at_least_once"`)
+3. ✅ **Use `kind` field:** Replace all `"type"` with `"kind"` in payload data
+4. ✅ **Include requestId:** Required for all HTTP messages
 
 ## Testing
 
-Once the server includes these fields, the proxy client should successfully:
+Once implemented, the proxy should:
 
-1. Parse incoming messages without errors
-2. Log `INCOMING REQUEST: GET /hh` for HTTP requests
-3. Process and forward requests to the local server
-4. Send responses back through the tunnel
+- ✅ Parse all messages without errors
+- ✅ Log `INCOMING REQUEST: GET /path` for HTTP requests
+- ✅ Forward requests to local server
+- ✅ Send responses back through tunnel
 
 ## Priority
 
-This is a **blocking issue** that prevents the proxy from functioning. The server must include these required metadata fields for the tunnel communication to work.
-
-## Contact
-
-If you have questions about this message format, please refer to:
-
-- `docs/protocol.md` - Complete protocol documentation
-- `docs/proxy.md` - Proxy server implementation guide
-- `src/protocol/messages.rs` - Message structure definitions
+**BLOCKING ISSUE** - Proxy cannot function until these changes are implemented.
