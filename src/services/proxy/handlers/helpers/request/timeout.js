@@ -1,11 +1,11 @@
 // Handle request timeout events
-const setupTimeoutHandler = (client, request, queries, log, proxyConfig, sendResponse) => {
+const setupTimeoutHandler = (proxyWs, request, queries, log, proxyConfig, sendResponse) => {
 	const { request: { crud: { updateStatus } } } = queries;
 	
 	setTimeout(async () => {
-		if (client.hasPendingRequest(request.hex)) {
-			const { res, request: req } = client.getPendingRequest(request.hex);
-			client.removePendingRequest(request.hex);
+		if (proxyWs.hasPendingRequest(request.hex)) {
+			const { res, request: req } = proxyWs.getPendingRequest(request.hex);
+			proxyWs.removePendingRequest(request.hex);
 
 			if (!res.aborted) {
 				sendResponse(res, 504, {

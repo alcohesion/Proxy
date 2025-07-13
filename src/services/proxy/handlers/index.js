@@ -13,7 +13,7 @@ const {
 const { tunnel, crypto } = require('../../../utils');
 const { protocol } = require('../../../configs');
 
-module.exports = (app, queries, log, proxyConfig) => {
+module.exports = (app, queries, log, proxyConfig, proxyWs) => {
 	// Create deps object for dependency injection
 	const deps = {
 		tunnel,
@@ -74,11 +74,22 @@ module.exports = (app, queries, log, proxyConfig) => {
 			// Now we can safely do async operations
 			const { device, request } = await getDevice(requestData, { device: createOrUpdate, request: createRequest }, log)
 
-			// Validate connection and request state
-			if(!await validateConnection(client, request, device, queries, sendResponse, res, abortedState.aborted, log)) return;
+			// Simple WebSocket connection check - just check if we have an active client
+			if (!proxyWs.hasActiveConnection()) {
+				log.warn(`No active WebSocket connection - RequestID: ${request.hex}`);
+				if (!abortedState.aborted()) {
+					sendResponse(res, 502, {
+						error: 'Bad Gateway',
+						message: 'No active tunnel connection',
+						requestId: request.hex,
+						timestamp: new Date().toISOString()
+					});
+				}
+				return;
+			}
 
 			// Store response object
-			client.addPendingRequest(request.hex, { res, request, startTime: Date.now() });
+			proxyWs.addPendingRequest(request.hex, { res, request, startTime: Date.now() });
 
 			// Get the body (either immediately for GET/HEAD/DELETE or wait for promise)
 			let body = '';
@@ -105,11 +116,11 @@ module.exports = (app, queries, log, proxyConfig) => {
 
 			// Process the request with the body and deps
 			log.proxy(`Processing request for ${request.method} - RequestID: ${request.hex}, bodyLength: ${body.length || 0}`);
-			await processRequest(body, request, client, sendResponse, res, abortedState.aborted, deps);
+			await processRequest(body, request, proxyWs, sendResponse, res, abortedState.aborted, deps);
 
 			// Set up abort and timeout handlers
-			setupAbortHandler(res, client, request, queries, log);
-			setupTimeoutHandler(client, request, queries, log, proxyConfig, sendResponse);
+			setupAbortHandler(res, proxyWs, request, queries, log);
+			setupTimeoutHandler(proxyWs, request, queries, log, proxyConfig, sendResponse);
 
 		} catch (error) {
 			log.error('Error processing request:', error);

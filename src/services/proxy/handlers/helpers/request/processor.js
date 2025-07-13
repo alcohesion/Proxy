@@ -1,10 +1,10 @@
 // Process and forward request to local WebSocket client
 
-const processRequest = async (body, request, client, sendResponse, res, aborted, deps) => {
+const processRequest = async (body, request, proxyWs, sendResponse, res, aborted, deps) => {
 	const { tunnel, crypto, protocol, log, queries } = deps;
 	const { request: { crud: { updateStatus, updateByHex } } } = queries;
 	
-	const localClient = client.getLocalClient();
+	const localClient = proxyWs.activeClient;
 	if (localClient && localClient.authenticated) {
 		try {
 			// Log message being sent to local WebSocket
@@ -33,7 +33,7 @@ const processRequest = async (body, request, client, sendResponse, res, aborted,
 
 			// Update status to unavailable and send error response
 			await updateStatus(request.hex, 'unavailable', 'Failed to forward request to local client');
-			client.removePendingRequest(request.hex);
+			proxyWs.removePendingRequest(request.hex);
 			if (!aborted()) {
 				sendResponse(res, 502, {
 					error: 'Bad Gateway',
@@ -46,7 +46,7 @@ const processRequest = async (body, request, client, sendResponse, res, aborted,
 	} else {
 		// Local client not available
 		await updateStatus(request.hex, 'unavailable', 'Local client not available');
-		client.removePendingRequest(request.hex);
+		proxyWs.removePendingRequest(request.hex);
 		if (!aborted()) {
 			sendResponse(res, 502, {
 				error: 'Bad Gateway',

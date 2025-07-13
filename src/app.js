@@ -62,39 +62,21 @@ const app = uWs.App()
 	})
 
 // Initialize workers with error handling
-try {
-	RequestWorker();
-	MetricsWorker();
-	log.worker('Workers initialized');
-} catch (error) {
-	log.worker('Failed to initialize workers:', error);
-	log.warn('Continuing without queue workers...');
-}
+RequestWorker();
+MetricsWorker();
 
-// Initialize WebSocket endpoints with error handling
-try {
-	const settings = {
-		compression: uWs.SHARED_COMPRESSOR,
-		maxPayloadLength: 16 * 1024 * 1024, // 16 MB
-		idleTimeout: 0 // Disable idle timeout to prevent auto-disconnect
-	};
-	const proxyWs = new ProxyWebSocket(app, settings);
-	const metricsWs = new MetricsWebSocket(app, settings);
+const settings = {
+	compression: uWs.SHARED_COMPRESSOR,
+	maxPayloadLength: 16 * 1024 * 1024, // 16 MB
+	idleTimeout: 0 // Disable idle timeout to prevent auto-disconnect
+};
 
-	// Set metrics WebSocket instance for broadcasting
-	setMetricsWebSocket(metricsWs);
-	
-	log.wss('WebSocket endpoints initialized');
-} catch (error) {
-	log.wss('Failed to initialize WebSocket endpoints:', error);
-}
+const proxyWs = new ProxyWebSocket(app, settings);
+const metricsWs = new MetricsWebSocket(app, settings);
+// Set metrics WebSocket instance for broadcasting
+setMetricsWebSocket(metricsWs);
 
 // Register HTTP services (health checks, etc.) with error handling
-try {
-	services(app);
-	log.success('HTTP services registered');
-} catch (error) {
-	log.error('Failed to register HTTP services:', error);
-}
+services(app, proxyWs);
 
 module.exports = app;
