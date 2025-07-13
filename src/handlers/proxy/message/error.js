@@ -26,15 +26,15 @@ module.exports = async (ws, data, deps) => {
 		return;
 	}
 
-	// Get client manager from the WebSocket's proxy instance
-	const clientManager = ws.clientManager;
-	if (!clientManager) {
-		log.error('Client manager not available');
+	// Get proxy instance from the WebSocket
+	const proxyInstance = ws.proxyInstance;
+	if (!proxyInstance) {
+		log.error('Proxy instance not available');
 		return;
 	}
 
 	// Send error response back to the HTTP client
-	const success = clientManager.sendResponse(requestId, {
+	const success = proxyInstance.sendResponse(requestId, {
 		statusCode: code || 500,
 		headers: { 'content-type': 'application/json' },
 		body: JSON.stringify({
