@@ -68,10 +68,22 @@ class ClientManager {
 			res.cork(() => {
 				res.writeStatus(`${responseData.statusCode} ${this.getStatusText(responseData.statusCode)}`);
 				
-				// Write all response headers
+				// Write all response headers with normalized header names
 				if (responseData.headers) {
+					const normalizedHeaders = {};
+					
+					// Normalize header names to lowercase and deduplicate
 					Object.keys(responseData.headers).forEach(key => {
-						res.writeHeader(key, responseData.headers[key]);
+						const normalizedKey = key.toLowerCase();
+						// Only keep the first occurrence of each header (case-insensitive)
+						if (!normalizedHeaders[normalizedKey]) {
+							normalizedHeaders[normalizedKey] = responseData.headers[key];
+						}
+					});
+					
+					// Write normalized headers
+					Object.keys(normalizedHeaders).forEach(key => {
+						res.writeHeader(key, normalizedHeaders[key]);
 					});
 				}
 				

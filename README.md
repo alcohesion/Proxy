@@ -1,10 +1,12 @@
 # Proxy Server
 
-A high-performance HTTP/WebSocket proxy server built with uWebSockets.js and MongoDB, designed for real-time request forwarding and comprehensive analytics.
+A high-performance HTTP/WebSocket proxy server built with uWebSockets.js and MongoDB, designed for real-time request forwarding and comprehensive analytics with full Pori proxy client compatibility.
 
 ## Features
 
 - **High-Performance WebSocket Proxy**: Built on uWebSockets.js for maximum throughput
+- **Pori Proxy Client Compatible**: Full support for tunnel message format with all required metadata
+- **Universal Content Type Support**: Handles all response types including JSON, HTML, XML, binary, and byte arrays
 - **Real-time Analytics Dashboard**: Live metrics and device tracking via WebSocket
 - **MongoDB Integration**: Persistent storage for requests, devices, and analytics
 - **Secure Authentication**: Token-based authentication for all endpoints
@@ -21,6 +23,7 @@ src/
 │   ├── app.js             # Application configuration
 │   ├── data.js            # Database configuration
 │   ├── index.js           # Configuration exports
+│   ├── protocol.js        # Tunnel protocol configuration (version from package.json)
 │   └── proxy.js           # Proxy settings
 ├── models/                 # MongoDB data models
 │   ├── connect.js         # Database connection
@@ -69,7 +72,15 @@ src/
 │           ├── error.js   # Error message handler
 │           ├── index.js   # Message exports
 │           ├── req.js     # Request message handler
-│           └── res.js     # Response message handler
+│           ├── res.js     # Response message handler
+│           └── body/      # Response body processing
+│               ├── index.js           # Main body processor
+│               └── processors/        # Content type processors
+│                   ├── index.js       # Processor exports
+│                   ├── json.js        # JSON content processing
+│                   ├── text.js        # Text content (HTML, plain, CSS)
+│                   ├── xml.js         # XML content processing
+│                   └── binary.js      # Binary content processing
 ├── services/               # Business logic services
 │   ├── health/            # Health check services
 │   │   ├── index.js       # Health service exports
@@ -101,6 +112,8 @@ src/
 │   ├── metrics/           # Metrics utilities
 │   │   ├── broadcast.js   # Metrics broadcasting
 │   │   └── index.js       # Metrics exports
+│   ├── tunnel/            # Tunnel message utilities
+│   │   └── messages.js    # Tunnel message creation with protocol compliance
 │   └── index.js           # Utility exports
 ├── queues/                # Background job processing
 │   ├── bull/              # Bull queue integration
@@ -112,6 +125,127 @@ src/
 └── logging/               # Logging utilities
     └── index.js           # Logging configuration
 ```
+
+## Tunnel Message Format
+
+The server implements full compatibility with the Pori proxy client by supporting the required tunnel message format with all mandatory metadata fields.
+
+### Message Structure
+
+All WebSocket messages use a standardized tunnel format:
+
+```json
+{
+  "envelope": {
+    "tunnel_id": "tunnel_1752411737413",
+    "client_id": "client_msg_e262b1fcd5f749a7"
+  },
+  "message": {
+    "metadata": {
+      "id": "msg_e262b1fcd5f749a7",
+      "message_type": "http_request",
+      "version": "1.0.0",
+      "timestamp": 1752411737413,
+      "priority": "normal",
+      "delivery_mode": "at_least_once",
+      "encoding": "json"
+    },
+    "payload": {
+      "kind": "HTTP",
+      "data": {
+        "kind": "Request",
+        "method": "GET",
+        "url": "/api/data",
+        "headers": {"host": "example.com"},
+        "body": null,
+        "requestId": "R0X39398B820AB9"
+      }
+    }
+  }
+}
+```
+
+### Required Metadata Fields
+
+All messages include these mandatory fields:
+
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| `version` | string | Protocol version (from package.json) | `"1.0.0"` |
+| `priority` | string | Message priority | `"normal"` |
+| `delivery_mode` | string | Delivery guarantee | `"at_least_once"` |
+| `encoding` | string | Message encoding | `"json"` |
+| `timestamp` | number | Unix timestamp (milliseconds) | `1752411737413` |
+
+### Message Types
+
+- **HTTP Messages**: `kind: "HTTP"` for request/response data
+- **Control Messages**: `kind: "Control"` for authentication, ping/pong, status
+- **Error Messages**: Structured error reporting with codes
+
+### Protocol Configuration
+
+Version and protocol settings are managed in `configs/protocol.js`:
+
+```javascript
+const protocol = {
+  version: packageJson.version,    // Dynamic version from package.json
+  priority: { default: 'normal' },
+  deliveryMode: { default: 'at_least_once' },
+  encoding: { default: 'json' }
+};
+```
+
+## Content Type Processing
+
+The server includes a sophisticated content type processing system that handles all possible response formats, ensuring compatibility with any local server implementation.
+
+### Supported Content Types
+
+- **JSON**: `application/json`, `text/json`
+- **Text**: `text/plain`, `text/html`, `text/css`, `text/javascript`
+- **XML**: `application/xml`, `text/xml`
+- **Binary**: Images, documents, files (converted to base64)
+- **Byte Arrays**: Raw byte data converted to UTF-8 strings
+
+### Content Processing Architecture
+
+```
+handlers/proxy/message/body/
+├── index.js              # Main content processor with auto-detection
+└── processors/
+    ├── json.js           # JSON object stringification
+    ├── text.js           # Text content handling
+    ├── xml.js            # XML content processing
+    └── binary.js         # Binary data handling
+```
+
+### Processing Examples
+
+```javascript
+// Byte array to text conversion
+[76,111,99,97,108] → "Local server error"
+
+// JSON object stringification
+{error: "Not found", code: 404} → '{"error":"Not found","code":404}'
+
+// Content-type auto-detection
+Object without headers → Assumes JSON, sets content-type
+Binary data → Converts to base64 with appropriate headers
+```
+
+### Error Handling
+
+- **Graceful fallbacks**: If JSON stringification fails, converts to string
+- **Encoding safety**: UTF-8 encoding for all text conversions
+- **Type detection**: Automatic content-type detection for objects
+- **Buffer support**: Native Buffer object handling
+
+This ensures that:
+- No binary responses reach the client
+- All content is properly formatted
+- Headers are correctly set
+- Error messages are human-readable
 
 ## Installation & Deployment
 
@@ -306,41 +440,34 @@ This ensures:
 
 ## Usage Examples
 
-### Basic Proxy Connection
+### Content Type Processing
 
-```javascript
-const WebSocket = require('ws');
+The server automatically handles different response types:
 
-const ws = new WebSocket('ws://localhost:8080/?token=your-auth-token');
-
-ws.on('open', () => {
-  // Send HTTP request through proxy
-  ws.send(JSON.stringify({
-    id: 'unique-request-id',
-    method: 'GET',
-    path: '/api/data',
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  }));
-});
-
-ws.on('message', (data) => {
-  const response = JSON.parse(data.toString());
-  console.log('Response:', response);
-});
+**JSON responses**: Objects are properly stringified
+```
+Input: {data: "value"}
+Output: '{"data":"value"}'
 ```
 
-### Metrics Dashboard Connection
-
-```javascript
-const metricsWs = new WebSocket('ws://localhost:8080/metrics?token=your-auth-token');
-
-metricsWs.on('message', (data) => {
-  const metrics = JSON.parse(data.toString());
-  console.log(`${metrics.type}:`, metrics.data);
-});
+**Binary/byte array responses**: Converted to text
 ```
+Input: [76,111,99,97,108,32,101,114,114,111,114]
+Output: "Local error"
+```
+
+**HTML responses**: Preserved as-is
+```
+Input: "<h1>Hello World</h1>"
+Output: "<h1>Hello World</h1>"
+```
+
+### Connection Requirements
+
+- WebSocket connection with valid authentication token
+- Messages must use tunnel format for full compatibility
+- All required metadata fields must be included in responses
+- Content-type detection and processing support required
 
 ## Development
 
@@ -377,12 +504,15 @@ The project follows a deep modular architecture pattern with strict naming conve
 
 Key architectural principles:
 - **configs/**: Application configuration and settings
+  - **protocol.js**: Tunnel protocol configuration with version management
 - **models/**: MongoDB schema definitions with automatic hex generation hooks
 - **queries/**: Database query factories accepting model and log dependencies
   - **operations/**: Split by operation type (crud, find, stats, etc.)
 - **handlers/**: WebSocket event handlers split by responsibility
+  - **message/body/**: Advanced content type processing system
 - **services/**: Business logic services with health checks
-- **utils/**: Utility functions organized by domain (crypto, http, metrics, etc.)
+- **utils/**: Utility functions organized by domain (crypto, http, metrics, tunnel, etc.)
+  - **tunnel/**: Tunnel message creation utilities with protocol compliance
 - **queues/**: Background job processing with Bull integration
 - **logging/**: Centralized logging with dependency injection (no console statements)
 
@@ -423,6 +553,32 @@ All query modules now use passed-in logging instead of console statements, enabl
 - **GET /health**: Basic health status
 - **GET /status**: Comprehensive system status including database connections
 
+## Compatibility
+
+### Pori Proxy Client Compatibility
+
+This server is fully compatible with the Pori proxy client and implements all required protocol features:
+
+- **Complete tunnel message format**: All required metadata fields included
+- **Correct field naming**: Uses `kind` instead of `type` in payload structure
+- **Case sensitivity**: Proper uppercase/lowercase field values (`"HTTP"`, `"normal"`, etc.)
+- **Version synchronization**: Protocol version automatically matches package.json
+- **Content type handling**: Supports all response formats without binary data issues
+
+### Backward Compatibility
+
+- **Legacy message format**: Still supports old message formats for existing clients
+- **Gradual migration**: Clients can migrate to tunnel format incrementally
+- **Error handling**: Graceful fallbacks for unsupported message types
+
+### Client Requirements
+
+To connect successfully, clients must:
+- Use WebSocket connection with authentication token
+- Send messages in tunnel format for full compatibility
+- Handle all required metadata fields in responses
+- Support content-type detection and processing
+
 ## Troubleshooting
 
 ### Common Issues
@@ -431,6 +587,27 @@ All query modules now use passed-in logging instead of console statements, enabl
 2. **Authentication failures**: Check AUTH_TOKEN environment variable
 3. **Database connection errors**: Verify MongoDB is running and URI is correct
 4. **High memory usage**: Monitor request logging and adjust retention policies
+5. **Binary response errors**: Fixed - server now handles all content types automatically
+6. **Missing protocol fields**: Fixed - all tunnel messages include required metadata
+7. **Content type parsing**: Fixed - comprehensive content type processing system
+
+### Message Format Issues
+
+1. **"Missing field 'version'" errors**: Fixed - server includes version from package.json
+2. **Binary data in responses**: Fixed - byte arrays converted to UTF-8 strings
+3. **Object serialization errors**: Fixed - proper JSON stringification
+4. **Incorrect content-type headers**: Fixed - automatic content-type detection and setting
+
+### Content Type Debugging
+
+Enable content type debugging by checking the processed response:
+
+```javascript
+// Check what content type processor is being used
+const { getProcessorType } = require('./handlers/proxy/message/body');
+console.log('Processor for text/html:', getProcessorType('text/html')); // → 'html'
+console.log('Processor for application/json:', getProcessorType('application/json')); // → 'json'
+```
 
 ### Debugging
 
