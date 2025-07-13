@@ -1,6 +1,6 @@
 {
   "name": "pori",
-  "version": "1.0.0",
+  "version": "0.1.45",
   "description": "uWebSockets proxy server with MongoDB and Redis",
   "main": "app.js",
   "scripts": {
