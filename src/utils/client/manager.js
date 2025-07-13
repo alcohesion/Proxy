@@ -14,6 +14,10 @@ class ClientManager {
 	}
 
 	clearLocalClient() {
+		if (this.localClient) {
+			console.log('WARNING: Clearing local client connection');
+			console.trace('Stack trace for clearLocalClient call:');
+		}
 		this.localClient = null;
 	}
 
@@ -22,21 +26,17 @@ class ClientManager {
 			return false;
 		}
 		
-		// Check if client is authenticated
-		if (!this.localClient.authenticated) {
-			return false;
-		}
-		
-		// Try to check if WebSocket is still open using uWebSockets.js methods
+		// Check if WebSocket is open by trying to access WebSocket state
 		try {
-			// If we can get buffered amount, connection is likely open
+			// If getBufferedAmount works, WebSocket is open
 			if (typeof this.localClient.getBufferedAmount === 'function') {
 				this.localClient.getBufferedAmount();
+				return true;
 			}
-			return true;
+			// Fallback check for authenticated property
+			return this.localClient.authenticated === true;
 		} catch (error) {
-			// If any WebSocket method throws, connection is closed
-			console.warn('Client connection test failed:', error.message);
+			// WebSocket is closed if methods throw errors
 			return false;
 		}
 	}

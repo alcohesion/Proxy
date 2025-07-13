@@ -22,6 +22,9 @@ const setupTimeoutHandler = (client, request, queries, log, proxyConfig, sendRes
 			} catch (error) {
 				log.error('Error updating timeout request:', error);
 			}
+			
+			// NOTE: Do NOT clear client connection on timeout
+			// The WebSocket may still be connected, just the local server didn't respond
 		}
 	}, proxyConfig.timeout);
 };

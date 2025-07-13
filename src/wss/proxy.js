@@ -94,8 +94,7 @@ class ProxyWebSocket {
 		return {
 			total: this.authenticatedConnections.size,
 			authenticated: this.authenticatedConnections.size,
-			managerConnections: this.connectionManager.getConnectionCount(),
-			hasActiveConnection: this.connectionManager.hasActiveConnection()
+			hasActiveConnection: this.client.isClientConnected() // Use actual WebSocket state
 		};
 	}
 	
