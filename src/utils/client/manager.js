@@ -72,9 +72,22 @@ class ClientManager {
 				if (responseData.headers) {
 					const normalizedHeaders = {};
 					
+					// Headers that uWebSockets.js automatically adds - exclude these to prevent duplicates
+					const autoAddedHeaders = new Set([
+						'date',           // uWebSockets.js adds Date header automatically
+						'content-length', // uWebSockets.js calculates this based on body
+						'connection',     // Managed by uWebSockets.js
+						'server'          // May be added automatically
+					]);
+					
 					// Normalize header names to lowercase and remove duplicates
 					Object.keys(responseData.headers).forEach(key => {
 						const normalizedKey = key.toLowerCase();
+						
+						// Skip headers that uWebSockets.js adds automatically to prevent duplicates
+						if (autoAddedHeaders.has(normalizedKey)) {
+							return;
+						}
 						
 						// Only keep the first occurrence of each header (case-insensitive)
 						if (!normalizedHeaders[normalizedKey]) {
