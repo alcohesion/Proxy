@@ -9,6 +9,39 @@ module.exports = (Request, log) => {
 		}
 	};
 
+	// Alias for consistency with service
+	const byHex = findbyhex;
+
+	// Find requests by status
+	const byStatus = async (status, options = {}) => {
+		try {
+			let mongoQuery = Request.find({ status });
+
+			if (options.sort) {
+				mongoQuery = mongoQuery.sort(options.sort);
+			} else {
+				mongoQuery = mongoQuery.sort({ createdAt: -1 }); // Default sort by newest first
+			}
+
+			if (options.limit) {
+				mongoQuery = mongoQuery.limit(options.limit);
+			}
+
+			if (options.skip) {
+				mongoQuery = mongoQuery.skip(options.skip);
+			}
+
+			if (options.populate) {
+				mongoQuery = mongoQuery.populate(options.populate);
+			}
+
+			return await mongoQuery.exec();
+		} catch (error) {
+			log.error('Error finding requests by status:', error);
+			throw error;
+		}
+	};
+
 	// Find many requests with options
 	const findmany = async (query = {}, options = {}) => {
 		try {
@@ -37,5 +70,5 @@ module.exports = (Request, log) => {
 		}
 	};
 
-	return { findbyhex, findmany };
+	return { findbyhex, byHex, byStatus, findmany };
 };

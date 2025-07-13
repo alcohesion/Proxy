@@ -55,7 +55,7 @@ module.exports = (Request, log) => {
 					'response.body': responseData.body,
 					'response.duration': responseData.duration,
 					'response.receivedAt': new Date(),
-					status: 'responded',
+					status: 'close',
 					updatedAt: new Date()
 				},
 				{ new: true, runValidators: true }

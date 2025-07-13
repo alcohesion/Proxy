@@ -17,7 +17,7 @@ const setupTimeoutHandler = (client, request, queries, log, proxyConfig, sendRes
 			}
 
 			try {
-				await updateStatus(req.hex, 'timeout');
+				await updateStatus(req.hex, 'close', 'Gateway Timeout');
 				log.proxy(`Request timeout - RequestID: ${req.hex}, Duration: ${proxyConfig.timeout}ms`);
 			} catch (error) {
 				log.error('Error updating timeout request:', error);

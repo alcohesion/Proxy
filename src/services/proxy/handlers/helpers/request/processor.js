@@ -1,4 +1,6 @@
 // Process and forward request to local WebSocket client
+const { tunnel } = require('../../../../../utils');
+
 const processRequest = async (body, request, client, log, queries, sendResponse, res, aborted) => {
 	const { request: { crud: { updateStatus, updateByHex } } } = queries;
 	
@@ -8,18 +10,16 @@ const processRequest = async (body, request, client, log, queries, sendResponse,
 			// Log message being sent to local WebSocket
 			log.wss(`Sending to local WS client - Method: ${request.method}, Path: ${request.path}, RequestID: ${request.hex}`);
 
-			// Send request to local client
-			localClient.send(JSON.stringify({
-				type: 'request',
-				requestId: request.hex,
-				method: request.method,
-				url: request.url,
-				path: request.path,
-				query: request.query,
-				headers: request.headers,
-				body: body || null,
-				timestamp: new Date().toISOString()
-			}));
+			// Create tunnel message using helper
+			const tunnelMessage = tunnel.createHttpRequestMessage(
+				request.method,
+				request.url,
+				request.headers,
+				body || null,
+				request.hex
+			);
+
+			localClient.send(JSON.stringify(tunnelMessage));
 
 			// Update request status
 			await updateStatus(request.hex, 'forwarded');
@@ -29,23 +29,27 @@ const processRequest = async (body, request, client, log, queries, sendResponse,
 		} catch (error) {
 			log.error('Error sending request to local client:', error);
 
-			// Send error response
+			// Update status to unavailable and send error response
+			await updateStatus(request.hex, 'unavailable', 'Failed to forward request to local client');
 			client.removePendingRequest(request.hex);
 			if (!aborted()) {
-				sendResponse(res, 500, {
-					error: 'Internal Server Error',
+				sendResponse(res, 502, {
+					error: 'Bad Gateway',
 					message: 'Failed to forward request to local client',
+					requestId: request.hex,
 					timestamp: new Date().toISOString()
 				});
 			}
 		}
 	} else {
 		// Local client not available
+		await updateStatus(request.hex, 'unavailable', 'Local client not available');
 		client.removePendingRequest(request.hex);
 		if (!aborted()) {
 			sendResponse(res, 502, {
-				error: 'Service Unavailable',
+				error: 'Bad Gateway',
 				message: 'Local client not available',
+				requestId: request.hex,
 				timestamp: new Date().toISOString()
 			});
 		}

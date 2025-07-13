@@ -8,7 +8,7 @@ module.exports = async (reqData, device, createQuery, log) => {
       headers: reqData.headers,
       body: null,
       device: device ? device._id : null,
-      status: 'pending'
+      status: 'open'
     };
 
     return await createQuery(requestData);

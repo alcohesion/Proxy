@@ -1,4 +1,6 @@
 // Connection handler for proxy WebSocket
+const { tunnel } = require('../../../utils');
+
 module.exports = async (ws, log, queries) => {
 	log.connect('Proxy WebSocket connection opened');
 	
@@ -10,22 +12,16 @@ module.exports = async (ws, log, queries) => {
 		});
 		ws.deviceHex = device.hex;
 		
-		// Send authentication status message as per client.md
-		ws.send(JSON.stringify({
-			type: 'auth',
-			status: 'authenticated',
-			timestamp: new Date().toISOString()
-		}));
+		// Send authentication status message using tunnel format
+		const authMessage = tunnel.createAuthMessage('authenticated', 'Device registered and ready for requests');
+		ws.send(JSON.stringify(authMessage));
 		
 		log.connect(`Device record created/updated - DeviceHex: ${device.hex}`);
 	} catch (error) {
 		log.error('Error creating device record:', error);
 		
-		// Send error message
-		ws.send(JSON.stringify({
-			type: 'error',
-			message: 'Failed to create device record',
-			code: 'DEVICE_ERROR'
-		}));
+		// Send error message using tunnel format
+		const errorMessage = tunnel.createErrorMessage('Failed to create device record', 'DEVICE_ERROR');
+		ws.send(JSON.stringify(errorMessage));
 	}
 };

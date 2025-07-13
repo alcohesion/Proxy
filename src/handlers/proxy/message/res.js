@@ -1,10 +1,19 @@
 module.exports = async (ws, data, log, queries) => {
-	// Handle nested format: {"type": "response", "data": {"id": "...", "status": 200, ...}}
-	const responseData = data.data || data; // Support both nested and flat formats
-	const { id: requestId, status, status_text, headers, body } = responseData;
+	// Handle tunnel message format from client.md only
+	if (!data.message || !data.message.payload || data.message.payload.type !== "Http") {
+		log.warn('Invalid response message format - tunnel format required');
+		return;
+	}
 
-	// Log response received from local client
-	log.wss(`Response received from local client - RequestID: ${requestId}, Status: ${status}`);
+	// Extract from tunnel message format
+	const httpData = data.message.payload.data;
+	const requestId = httpData.requestId;
+	const status = httpData.status;
+	const status_text = httpData.status_text;
+	const headers = httpData.headers;
+	const body = httpData.body;
+	
+	log.wss(`Tunnel response received from local client - RequestID: ${requestId}, Status: ${status}`);
 
 	if (!requestId) {
 		log.warn('Response missing requestId');

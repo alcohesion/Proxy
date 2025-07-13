@@ -21,8 +21,8 @@ const request = new mongoose.Schema({
 	},
 	status: { 
 		type: String, 
-		enum: ['pending', 'forwarded', 'responded', 'timeout', 'error'], 
-		default: 'pending' 
+		enum: ['open', 'close', 'unavailable', 'pending', 'forwarded', 'responded', 'timeout', 'error'], 
+		default: 'open' 
 	},
 	error: { type: String, default: null },
 	createdAt: { type: Date, default: Date.now },

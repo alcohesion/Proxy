@@ -29,5 +29,46 @@ module.exports = (Request, log) => {
 		}
 	};
 
-	return { count, aggregate, countByStatus };
+	// Get status distribution
+	const statusDistribution = async () => {
+		try {
+			const pipeline = [
+				{
+					$group: {
+						_id: '$status',
+						count: { $sum: 1 },
+						lastRequest: { $max: '$createdAt' }
+					}
+				},
+				{
+					$sort: { count: -1 }
+				}
+			];
+
+			const results = await Request.aggregate(pipeline);
+			
+			// Convert to more readable format
+			const distribution = {};
+			let total = 0;
+
+			results.forEach(result => {
+				distribution[result._id] = {
+					count: result.count,
+					lastRequest: result.lastRequest
+				};
+				total += result.count;
+			});
+
+			return {
+				distribution,
+				total,
+				timestamp: new Date().toISOString()
+			};
+		} catch (error) {
+			log.error('Error getting status distribution:', error);
+			throw error;
+		}
+	};
+
+	return { count, aggregate, countByStatus, statusDistribution };
 };
