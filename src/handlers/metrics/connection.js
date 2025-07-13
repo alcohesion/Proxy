@@ -1,6 +1,8 @@
 // Connection handler for metrics WebSocket
+const log = require('../../logging');
+
 const handleConnection = async (ws) => {
-	console.log('Metrics WebSocket connection opened');
+	log.connect('Metrics WebSocket connection opened');
 	// Connection-specific setup would go here
 };
 

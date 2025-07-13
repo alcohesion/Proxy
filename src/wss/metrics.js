@@ -1,4 +1,5 @@
 const queries = require('../queries');
+const log = require('../logging');
 
 const {
 	metrics: { auth, message, connection, interval }
@@ -43,7 +44,7 @@ class MetricsWebSocket {
 						context
 					);
 				} catch (error) {
-					console.error('Metrics WebSocket upgrade error:', error);
+					log.error('Metrics WebSocket upgrade error:', error);
 					res.writeStatus('400 Bad Request').end('WebSocket upgrade failed');
 				}
 			},
@@ -69,7 +70,7 @@ class MetricsWebSocket {
 			},
 			
 			close: (ws, code, message) => {
-				console.log('Metrics WebSocket connection closed');
+				log.disconnect('Metrics WebSocket connection closed');
 				this.authenticatedConnections.delete(ws);
 				
 				// Clear interval
@@ -80,7 +81,7 @@ class MetricsWebSocket {
 			},
 			
 			drain: (ws) => {
-				console.log('Metrics WebSocket backpressure: ' + ws.getBufferedAmount());
+				log.wss('Metrics WebSocket backpressure: ' + ws.getBufferedAmount());
 			}
 		});
 	}
@@ -150,7 +151,7 @@ class MetricsWebSocket {
 				}
 			}));
 		} catch (error) {
-			console.error('Error sending metrics:', error);
+			log.error('Error sending metrics:', error);
 		}
 	}
 	
@@ -168,7 +169,7 @@ class MetricsWebSocket {
 				data: devices
 			}));
 		} catch (error) {
-			console.error('Error sending devices:', error);
+			log.error('Error sending devices:', error);
 		}
 	}
 	
@@ -186,7 +187,7 @@ class MetricsWebSocket {
 				data: requests
 			}));
 		} catch (error) {
-			console.error('Error sending recent requests:', error);
+			log.error('Error sending recent requests:', error);
 		}
 	}
 	
@@ -212,7 +213,7 @@ class MetricsWebSocket {
 				}
 			}));
 		} catch (error) {
-			console.error('Error sending system status:', error);
+			log.error('Error sending system status:', error);
 		}
 	}
 	
@@ -246,7 +247,7 @@ class MetricsWebSocket {
 			
 			return { avg: 0, min: 0, max: 0 };
 		} catch (error) {
-			console.error('Error calculating average response time:', error);
+			log.error('Error calculating average response time:', error);
 			return { avg: 0, min: 0, max: 0 };
 		}
 	}

@@ -1,5 +1,6 @@
 const queries = require('../../queries');
-const statusService = require('../../services/status')(queries, console);
+const log = require('../../logging');
+const statusService = require('../../services/status')(queries, log);
 
 // Message handler for metrics WebSocket
 const handleMessage = async (ws, message, isBinary, metricsInstance) => {
@@ -41,7 +42,7 @@ const handleMessage = async (ws, message, isBinary, metricsInstance) => {
 		}
 		
 	} catch (error) {
-		console.error('Error processing metrics message:', error);
+		log.error('Error processing metrics message:', error);
 		ws.send(JSON.stringify({
 			type: 'error',
 			message: 'Invalid message format',
@@ -61,7 +62,7 @@ const sendStatusStats = async (ws) => {
 			data: stats
 		}));
 	} catch (error) {
-		console.error('Error sending status stats:', error);
+		log.error('Error sending status stats:', error);
 		ws.send(JSON.stringify({
 			type: 'error',
 			message: 'Failed to get status statistics',
@@ -94,7 +95,7 @@ const sendRequestsByStatus = async (ws, status, limit) => {
 			}
 		}));
 	} catch (error) {
-		console.error('Error sending requests by status:', error);
+		log.error('Error sending requests by status:', error);
 		ws.send(JSON.stringify({
 			type: 'error',
 			message: 'Failed to get requests by status',
@@ -132,7 +133,7 @@ const sendRequestStatus = async (ws, requestId) => {
 			data: requestStatus
 		}));
 	} catch (error) {
-		console.error('Error sending request status:', error);
+		log.error('Error sending request status:', error);
 		ws.send(JSON.stringify({
 			type: 'error',
 			message: 'Failed to get request status',
