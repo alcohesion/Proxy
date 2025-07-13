@@ -77,6 +77,10 @@ class ProxyWebSocket {
 		return request.manager.get(this.pendingRequests, requestId);
 	}
 
+	hasPendingRequest(requestId) {
+		return this.pendingRequests.has(requestId);
+	}
+
 	sendResponse(requestId, responseData) {
 		return request.response.send(this.pendingRequests, requestId, responseData, log);
 	}
