@@ -6,11 +6,23 @@ const {
 	processRequest,
 	setupAbortHandler,
 	setupTimeoutHandler,
-	validateConnection,
 	setupInitialAbortHandler
 } = require('./helpers');
 
-module.exports = (app, client, queries, log, proxyConfig) => {
+// Import dependencies to pass to processRequest
+const { tunnel, crypto } = require('../../../utils');
+const { protocol } = require('../../../configs');
+
+module.exports = (app, queries, log, proxyConfig) => {
+	// Create deps object for dependency injection
+	const deps = {
+		tunnel,
+		crypto,
+		protocol,
+		log,
+		queries
+	};
+
 	// Handle all HTTP requests for forwarding
 	app.any('/*', async (res, req) => {
 		// Skip health and metrics endpoints - they have their own handlers
@@ -91,9 +103,9 @@ module.exports = (app, client, queries, log, proxyConfig) => {
 				log.proxy(`No body expected for ${request.method} - RequestID: ${request.hex}`);
 			}
 
-			// Process the request with the body
+			// Process the request with the body and deps
 			log.proxy(`Processing request for ${request.method} - RequestID: ${request.hex}, bodyLength: ${body.length || 0}`);
-			await processRequest(body, request, client, log, queries, sendResponse, res, abortedState.aborted);
+			await processRequest(body, request, client, sendResponse, res, abortedState.aborted, deps);
 
 			// Set up abort and timeout handlers
 			setupAbortHandler(res, client, request, queries, log);

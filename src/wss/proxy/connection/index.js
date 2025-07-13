@@ -1,7 +1,7 @@
 const auth = require('./auth');
-const message = require('./message');
+const manager = require('./manager');
 
 module.exports = {
 	auth,
-	message
+	manager
 };

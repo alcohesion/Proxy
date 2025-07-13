@@ -1,4 +1,6 @@
-module.exports = async (ws, data, log, queries) => {
+module.exports = async (ws, data, deps) => {
+	const { log, queries } = deps;
+	
 	// Log request received from local client
 	log.wss(`Request received - Method: ${data.method}, Path: ${data.path}, ID: ${data.id}`);
 

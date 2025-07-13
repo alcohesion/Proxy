@@ -1,8 +1,8 @@
-const { tunnel } = require('../../utils');
-
-module.exports = (ws, token) => {
+module.exports = (ws, token, deps) => {
+	const { tunnel, crypto, protocol } = deps;
+	
 	if (!token || token !== process.env.AUTH_TOKEN) {
-		const errorMessage = tunnel.createErrorMessage('Authentication required', 'AUTH_REQUIRED');
+		const errorMessage = tunnel.createErrorMessage('Authentication required', 'AUTH_REQUIRED', crypto, protocol);
 		ws.send(JSON.stringify(errorMessage));
 		ws.close();
 		return false;
@@ -10,7 +10,7 @@ module.exports = (ws, token) => {
 	
 	ws.authenticated = true;
 	
-	const authMessage = tunnel.createAuthMessage('authenticated', 'Connection established successfully');
+	const authMessage = tunnel.createAuthMessage('authenticated', 'Connection established successfully', crypto, protocol);
 	ws.send(JSON.stringify(authMessage));
 	
 	return true;

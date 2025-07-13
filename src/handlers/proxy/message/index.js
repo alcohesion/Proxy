@@ -1,9 +1,10 @@
 const handleResponse = require('./res')
 const handleError = require('./error');
 const handleRequest = require('./req');
-const { tunnel } = require('../../../utils');
 
-module.exports = async (ws, message, isBinary, log, queries) => {
+module.exports = async (ws, message, isBinary, deps) => {
+	const { tunnel, crypto, protocol, log, queries } = deps;
+	
 	if (!ws.authenticated) {
 		return;
 	}
@@ -22,12 +23,12 @@ module.exports = async (ws, message, isBinary, log, queries) => {
 						kind: "Ping",
 						message: 'Connection alive',
 						timestamp: new Date().toISOString()
-					});
+					}, crypto, protocol);
 					ws.send(JSON.stringify(pongMessage));
 					return;
 				default:
 					log.warn(`Unhandled text message: ${messageString}`);
-					const errorMessage = tunnel.createErrorMessage('Text messages not supported. Use JSON format.', 'TEXT_NOT_SUPPORTED');
+					const errorMessage = tunnel.createErrorMessage('Text messages not supported. Use JSON format.', 'TEXT_NOT_SUPPORTED', crypto, protocol);
 					ws.send(JSON.stringify(errorMessage));
 					return;
 			}
@@ -45,40 +46,40 @@ module.exports = async (ws, message, isBinary, log, queries) => {
 				
 				if (messageType === "http_response" && httpDataKind === "Response") {
 					// Handle HTTP response
-					await handleResponse(ws, data, log, queries);
+					await handleResponse(ws, data, deps);
 					return;
 				} else if (messageType === "http_response" && data.message.payload.data.status >= 400) {
 					// Handle HTTP error response
-					await handleError(ws, data, log, queries);
+					await handleError(ws, data, deps);
 					return;
 				} else if (messageType === "http_request" && httpDataKind === "Request") {
 					// Handle HTTP request (though this is unusual for local client to send)
-					await handleRequest(ws, data, log, queries);
+					await handleRequest(ws, data, deps);
 					return;
 				}
 			} else if (payloadKind === "Control") {
 				// Control messages are not handled in proxy WebSocket
 				// Use metrics WebSocket for status queries and other control operations
 				log.warn(`Control messages should use metrics WebSocket endpoint`);
-				const errorMessage = tunnel.createErrorMessage('Control messages not supported on proxy endpoint. Use /metrics WebSocket.', 'USE_METRICS_ENDPOINT');
+				const errorMessage = tunnel.createErrorMessage('Control messages not supported on proxy endpoint. Use /metrics WebSocket.', 'USE_METRICS_ENDPOINT', crypto, protocol);
 				ws.send(JSON.stringify(errorMessage));
 				return;
 			}
 			
 			log.warn(`Unknown tunnel message type: ${messageType}, payload kind: ${payloadKind}`);
-			const errorMessage = tunnel.createErrorMessage('Unknown tunnel message format', 'UNKNOWN_TUNNEL_TYPE');
+			const errorMessage = tunnel.createErrorMessage('Unknown tunnel message format', 'UNKNOWN_TUNNEL_TYPE', crypto, protocol);
 			ws.send(JSON.stringify(errorMessage));
 			return;
 		}
 
 		// Invalid message format - must use tunnel structure
 		log.warn(`Invalid message format - tunnel structure required`);
-		const errorMessage = tunnel.createErrorMessage('Message must use tunnel format structure', 'INVALID_STRUCTURE');
+		const errorMessage = tunnel.createErrorMessage('Message must use tunnel format structure', 'INVALID_STRUCTURE', crypto, protocol);
 		ws.send(JSON.stringify(errorMessage));
 
 	} catch (error) {
 		log.error('Error processing proxy message:', error);
-		const errorMessage = tunnel.createErrorMessage('Invalid message format', 'INVALID_JSON');
+		const errorMessage = tunnel.createErrorMessage('Invalid message format', 'INVALID_JSON', crypto, protocol);
 		ws.send(JSON.stringify(errorMessage));
 	}
 };

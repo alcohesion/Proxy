@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const { security } = require('../../configs');
 
 // Generate a unique hex identifier using environment key, timestamp, and prefix
-const generateHex = (prefix = 'RQT') => {
+const generateHex = (prefix = 'RQT', length = 12) => {
 	// Use hexKey as default env key for entropy
 	const key = security.hexKey || 'default-key';
 	
@@ -19,7 +19,7 @@ const generateHex = (prefix = 'RQT') => {
 	const hash = crypto.createHash('sha256')
 		.update(combined)
 		.digest('hex')
-		.substring(0, 12)
+		.substring(0, length)
 		.toUpperCase();
 	
 	// Return with prefix
@@ -31,13 +31,22 @@ const generateHex = (prefix = 'RQT') => {
  */
 const hex = {
 	// Request documents
-	request: () => generateHex('R0X'),
-	
-	// Device documents  
-	device: () => generateHex('D0X'),
-	
+	request: () => generateHex('R0X', 16),
+
+	// Device documents
+	device: () => generateHex('D0X', 16),
+
 	// Metrics documents
-	metrics: () => generateHex('M0X'),
+	metrics: () => generateHex('M0X', 16),
+
+	// Tunnel IDs
+	tunnel: () => generateHex('T0X', 16),
+
+	// Message IDs
+	message: () => generateHex('M0X', 20),
+
+	// client  replace the first three chars with 'C0X'
+	client: hex => hex.replace(/^.{3}/, 'C0X'),
 
 	// Generic hex generator
 	generate: generateHex

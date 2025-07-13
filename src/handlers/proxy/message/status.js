@@ -1,8 +1,9 @@
 // Status query message handler
 const status = require('../../../services/status');
-const { tunnel } = require('../../../utils');
 
-module.exports = async (ws, data, log, queries) => {
+module.exports = async (ws, data, deps) => {
+	const { tunnel, crypto, protocol, log, queries } = deps;
+	
 	// Initialize status service
 	const statusService = status(queries, log);
 	
@@ -68,7 +69,7 @@ module.exports = async (ws, data, log, queries) => {
 			success: true,
 			data: result,
 			timestamp: new Date().toISOString()
-		});
+		}, crypto, protocol);
 
 		ws.send(JSON.stringify(responseMessage));
 		log.wss(`Status query response sent - Type: ${queryType}`);
@@ -83,7 +84,7 @@ module.exports = async (ws, data, log, queries) => {
 			success: false,
 			error: error.message,
 			timestamp: new Date().toISOString()
-		});
+		}, crypto, protocol);
 
 		ws.send(JSON.stringify(errorMessage));
 	}

@@ -1,7 +1,7 @@
 // Process and forward request to local WebSocket client
-const { tunnel } = require('../../../../../utils');
 
-const processRequest = async (body, request, client, log, queries, sendResponse, res, aborted) => {
+const processRequest = async (body, request, client, sendResponse, res, aborted, deps) => {
+	const { tunnel, crypto, protocol, log, queries } = deps;
 	const { request: { crud: { updateStatus, updateByHex } } } = queries;
 	
 	const localClient = client.getLocalClient();
@@ -16,7 +16,9 @@ const processRequest = async (body, request, client, log, queries, sendResponse,
 				request.url,
 				request.headers,
 				body || null,
-				request.hex
+				request.hex,
+				crypto,
+				protocol
 			);
 
 			localClient.send(JSON.stringify(tunnelMessage));

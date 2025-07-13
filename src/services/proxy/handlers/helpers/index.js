@@ -2,7 +2,6 @@ const sendResponse = require('./response');
 const getDevice = require('./device');
 const { getData, readRequestBody, processRequest, setupAbortHandler, setupTimeoutHandler } = require('./request');
 const { shouldSkipRoute } = require('./route');
-const { validateConnection } = require('./validation');
 const { setupInitialAbortHandler } = require('./lifecycle');
 
 module.exports = { 
@@ -14,7 +13,5 @@ module.exports = {
 	processRequest,
 	setupAbortHandler,
 	setupTimeoutHandler,
-	validateConnection,
 	setupInitialAbortHandler
-}
-
+};

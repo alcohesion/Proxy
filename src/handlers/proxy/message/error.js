@@ -1,4 +1,6 @@
-module.exports = async (ws, data, log, queries) => {
+module.exports = async (ws, data, deps) => {
+	const { log, queries } = deps;
+	
 	// Handle tunnel message format for errors from client.md only
 	if (!data.message || !data.message.payload || data.message.payload.kind !== "HTTP") {
 		log.warn('Invalid error message format - tunnel format required');

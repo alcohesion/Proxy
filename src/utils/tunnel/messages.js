@@ -1,14 +1,12 @@
 // Helper functions for creating tunnel messages
-const crypto = require('crypto');
-const { protocol } = require('../../configs');
 
-const createTunnelMessage = (messageType, payloadType, data, correlationId = null) => {
-	const messageId = `msg_${crypto.randomBytes(8).toString('hex')}`;
-	
+const createTunnelMessage = (messageType, payloadType, data, crypto, protocol, correlationId = null) => {
+	const messageId = crypto.message();
+
 	return {
 		envelope: {
-			tunnel_id: `tunnel_${Date.now()}`,
-			client_id: `client_${messageId}`
+			tunnel_id: crypto.tunnel(),
+			client_id: crypto.client(messageId)
 		},
 		message: {
 			metadata: {
@@ -29,7 +27,7 @@ const createTunnelMessage = (messageType, payloadType, data, correlationId = nul
 	};
 };
 
-const createHttpRequestMessage = (method, url, headers, body, requestId) => {
+const createHttpRequestMessage = (method, url, headers, body, requestId, crypto, protocol) => {
 	return createTunnelMessage("http_request", "HTTP", {
 		kind: "Request",
 		method: method,
@@ -37,10 +35,10 @@ const createHttpRequestMessage = (method, url, headers, body, requestId) => {
 		headers: headers,
 		body: body,
 		requestId: requestId
-	});
+	}, crypto, protocol);
 };
 
-const createHttpResponseMessage = (status, statusText, headers, body, requestId, correlationId) => {
+const createHttpResponseMessage = (status, statusText, headers, body, requestId, correlationId, crypto, protocol) => {
 	return createTunnelMessage("http_response", "HTTP", {
 		kind: "Response",
 		status: status,
@@ -48,31 +46,31 @@ const createHttpResponseMessage = (status, statusText, headers, body, requestId,
 		headers: headers,
 		body: body,
 		requestId: requestId
-	}, correlationId);
+	}, crypto, protocol, correlationId);
 };
 
-const createAuthMessage = (status, message) => {
+const createAuthMessage = (status, message, crypto, protocol) => {
 	return createTunnelMessage("auth", "Control", {
 		kind: "Authentication",
 		status: status,
 		message: message,
 		timestamp: new Date().toISOString()
-	});
+	}, crypto, protocol);
 };
 
-const createErrorMessage = (error, code, requestId = null) => {
+const createErrorMessage = (error, code, crypto, protocol, requestId = null) => {
 	return createTunnelMessage("error", "Control", {
 		kind: "Error",
 		error: error,
 		code: code,
 		...(requestId && { requestId: requestId }),
 		timestamp: new Date().toISOString()
-	});
+	}, crypto, protocol);
 };
 
 // Create tunnel message with custom metadata options
-const createCustomTunnelMessage = (messageType, payloadType, data, options = {}) => {
-	const messageId = `msg_${crypto.randomBytes(8).toString('hex')}`;
+const createCustomTunnelMessage = (messageType, payloadType, data, crypto, protocol, options = {}) => {
+	const messageId = crypto.message();
 	const {
 		correlationId = null,
 		priority = protocol.priority.default,
@@ -82,8 +80,8 @@ const createCustomTunnelMessage = (messageType, payloadType, data, options = {})
 	
 	return {
 		envelope: {
-			tunnel_id: `tunnel_${Date.now()}`,
-			client_id: `client_${messageId}`
+			tunnel_id: crypto.tunnel(),
+			client_id: crypto.client(messageId)
 		},
 		message: {
 			metadata: {
