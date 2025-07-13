@@ -19,7 +19,7 @@ module.exports = async (ws, message, isBinary, log, queries) => {
 			switch (messageString.toUpperCase()) {
 				case 'PING':
 					const pongMessage = tunnel.createTunnelMessage("pong", "Control", {
-						type: "Ping",
+						kind: "Ping",
 						message: 'Connection alive',
 						timestamp: new Date().toISOString()
 					});
