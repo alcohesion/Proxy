@@ -42,10 +42,12 @@ module.exports = (app, client, queries, log, proxyConfig) => {
 
 			// Create the process function with bound parameters
 			const boundProcessRequest = async (body = '') => {
+				console.log(`[DEBUG] boundProcessRequest called for ${request.method} - RequestID: ${request.hex}, bodyLength: ${body.length}`);
 				await processRequest(body, request, client, log, queries, sendResponse, res, abortedState.aborted);
 			};
 
 			// Handle request body reading
+			console.log(`[DEBUG] Starting body reading for ${request.method} - RequestID: ${request.hex}`);
 			readRequestBody(res, request, boundProcessRequest);
 
 			// Set up abort and timeout handlers
@@ -54,6 +56,7 @@ module.exports = (app, client, queries, log, proxyConfig) => {
 
 		} catch (error) {
 			log.error('Error processing request:', error);
+			console.error(`[DEBUG] Error in request processing for ${requestData.method}:`, error);
 			if (!abortedState.aborted()) {
 				sendResponse(res, 500, {
 					error: 'Internal Server Error',
