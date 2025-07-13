@@ -3,7 +3,6 @@ const {
 	getDevice, 
 	sendResponse,
 	shouldSkipRoute,
-	readRequestBody,
 	processRequest,
 	setupAbortHandler,
 	setupTimeoutHandler,
@@ -33,7 +32,7 @@ module.exports = (app, client, queries, log, proxyConfig) => {
 		// For methods that might have a body, set up body reading IMMEDIATELY before any async operations
 		let bodyPromise = null;
 		if (requestData.method !== 'GET' && requestData.method !== 'HEAD' && requestData.method !== 'DELETE') {
-			console.log(`[DEBUG] Setting up immediate body reading for ${requestData.method}`);
+			log.proxy(`Setting up immediate body reading for ${requestData.method}`);
 			bodyPromise = new Promise((resolve) => {
 				let body = '';
 				let hasReceivedData = false;
@@ -41,10 +40,10 @@ module.exports = (app, client, queries, log, proxyConfig) => {
 				res.onData((chunk, isLast) => {
 					hasReceivedData = true;
 					body += Buffer.from(chunk).toString();
-					console.log(`[DEBUG] Received data chunk for ${requestData.method}, isLast: ${isLast}, bodyLength: ${body.length}`);
+					log.proxy(`Received data chunk for ${requestData.method}, isLast: ${isLast}, bodyLength: ${body.length}`);
 					
 					if (isLast) {
-						console.log(`[DEBUG] Body reading complete for ${requestData.method}, bodyLength: ${body.length}`);
+						log.proxy(`Body reading complete for ${requestData.method}, bodyLength: ${body.length}`);
 						resolve(body);
 					}
 				});
@@ -52,7 +51,7 @@ module.exports = (app, client, queries, log, proxyConfig) => {
 				// Fallback timeout
 				setTimeout(() => {
 					if (!hasReceivedData) {
-						console.log(`[DEBUG] No data received within 2s for ${requestData.method}, resolving with empty body`);
+						log.proxy(`No data received within 2s for ${requestData.method}, resolving with empty body`);
 						resolve('');
 					}
 				}, 2000);
@@ -72,15 +71,28 @@ module.exports = (app, client, queries, log, proxyConfig) => {
 			// Get the body (either immediately for GET/HEAD/DELETE or wait for promise)
 			let body = '';
 			if (bodyPromise) {
-				console.log(`[DEBUG] Waiting for body data for ${request.method} - RequestID: ${request.hex}`);
+				log.proxy(`Waiting for body data for ${request.method} - RequestID: ${request.hex}`);
 				body = await bodyPromise;
-				console.log(`[DEBUG] Body received for ${request.method} - RequestID: ${request.hex}, bodyLength: ${body.length}`);
+				log.proxy(`Body received for ${request.method} - RequestID: ${request.hex}, bodyLength: ${body.length}`);
+				
+				// Parse JSON body if content-type is application/json
+				if (body && request.headers && 
+					(request.headers['content-type'] || '').toLowerCase().includes('application/json')) {
+					try {
+						log.proxy(`Parsing JSON body for ${request.method} - RequestID: ${request.hex}`);
+						body = JSON.parse(body);
+						log.proxy(`JSON body parsed successfully for ${request.method} - RequestID: ${request.hex}`);
+					} catch (error) {
+						log.proxy(`Failed to parse JSON body for ${request.method} - RequestID: ${request.hex}, keeping as string`);
+						// Keep as string if parsing fails
+					}
+				}
 			} else {
-				console.log(`[DEBUG] No body expected for ${request.method} - RequestID: ${request.hex}`);
+				log.proxy(`No body expected for ${request.method} - RequestID: ${request.hex}`);
 			}
 
 			// Process the request with the body
-			console.log(`[DEBUG] Processing request for ${request.method} - RequestID: ${request.hex}, bodyLength: ${body.length}`);
+			log.proxy(`Processing request for ${request.method} - RequestID: ${request.hex}, bodyLength: ${body.length || 0}`);
 			await processRequest(body, request, client, log, queries, sendResponse, res, abortedState.aborted);
 
 			// Set up abort and timeout handlers
@@ -89,7 +101,7 @@ module.exports = (app, client, queries, log, proxyConfig) => {
 
 		} catch (error) {
 			log.error('Error processing request:', error);
-			console.error(`[DEBUG] Error in request processing for ${requestData.method}:`, error);
+			log.error(`Error in request processing for ${requestData.method}:`, error);
 			if (!abortedState.aborted()) {
 				sendResponse(res, 500, {
 					error: 'Internal Server Error',
