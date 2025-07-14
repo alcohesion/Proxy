@@ -11,8 +11,13 @@ const get = (pendingRequests, requestId) => {
 	return pendingRequests.get(requestId);
 };
 
+const has = (pendingRequests, requestId) => {
+  return pendingRequests.has(requestId);
+};
+
 module.exports = {
 	add,
 	remove,
-	get
+	get,
+	has
 };

@@ -69,17 +69,17 @@ module.exports = class ProxyWebSocket {
     },
     get: () => {
       // get the first active connection
-      if (this.activeConnections.size === 0) return null;
+      if (this.activeConnections.size === 0) return false
       const id = Array.from(this.activeConnections.keys())[0];
-      if (!id) return null;
-      if (!this.activeConnections.has(id)) return null;
+      if (!id) return false;
+      if (!this.activeConnections.has(id)) return false;
       return this.activeConnections.get(id);
     },
   }
 
   send = message => {
     const connection = this.connection.get();
-    if (connection && connection.readyState === 1) {
+    if (connection) {
       connection.send(message);
       return true;
     }

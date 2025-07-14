@@ -49,6 +49,7 @@ module.exports = {
       ws.connectionId = crypto.connection();
       ws.connectedAt = new Date().toISOString();
       ws.tunnelId = crypto.tunnel();
+      ws.authenticated = true;
 
       const deviceHex = crypto.device();
       ws.device = {

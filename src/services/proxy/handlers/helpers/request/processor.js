@@ -20,8 +20,9 @@ const processRequest = async (body, request, proxy, sendResponse, res, aborted) 
 		);
 
 		if (!proxy.send(JSON.stringify(tunnelMessage))) {
-			// Local client not available
+			// Local client not available - send immediate response
 			await updateStatus(request.hex, 'unavailable', 'Local client not available');
+			proxy.request.remove(request.hex);
 			if (!aborted()) {
 				sendResponse(res, 502, {
 					error: 'Bad Gateway',
@@ -30,6 +31,7 @@ const processRequest = async (body, request, proxy, sendResponse, res, aborted) 
 					timestamp: new Date().toISOString()
 				});
 			}
+			return;
 		}
 
 		// Update request status
@@ -40,16 +42,8 @@ const processRequest = async (body, request, proxy, sendResponse, res, aborted) 
 	} catch (error) {
 		log.error('Error sending request to local client:', error);
 
-		// Update status to unavailable and send error response
+		// Update status to unavailable - don't send response, let timeout handler handle it
 		await updateStatus(request.hex, 'unavailable', 'Failed to forward request to local client');
-		if (!aborted()) {
-			sendResponse(res, 502, {
-				error: 'Bad Gateway',
-				message: 'Failed to forward request to local client',
-				requestId: request.hex,
-				timestamp: new Date().toISOString()
-			});
-		}
 	}
 };
 

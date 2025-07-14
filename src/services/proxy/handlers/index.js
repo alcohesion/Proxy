@@ -71,6 +71,9 @@ module.exports = class ProxyHandlers {
 				// Store response object
 				this.proxy.request.add(request.hex, { res, request, startTime: Date.now() });
 
+				// Set up abort handler immediately after storing the request
+				setupAbortHandler(res, this.proxy, request, this.queries, this.log);
+
 				// Get the body (either immediately for GET/HEAD/DELETE or wait for promise)
 				let body = '';
 				if (bodyPromise) {
@@ -96,10 +99,9 @@ module.exports = class ProxyHandlers {
 
 				// Process the request with the body and dependencies
 				this.log.proxy(`Processing request for ${request.method} - RequestID: ${request.hex}, bodyLength: ${body.length || 0}`);
-				await processRequest(body, request, this.proxy.activeConnections, sendResponse, res, abortedState.aborted);
+				await processRequest(body, request, this.proxy, sendResponse, res, abortedState.aborted);
 
-				// Set up abort and timeout handlers
-				setupAbortHandler(res, this.proxy, request, this.queries, this.log);
+				// Set up timeout handler
 				setupTimeoutHandler(this.proxy, request, this.queries, { timeout: 30000 }, sendResponse);
 
 			} catch (error) {
