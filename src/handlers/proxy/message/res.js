@@ -26,16 +26,15 @@ module.exports = async (ws, data, deps) => {
 	}
 
 	// Get proxy instance from the WebSocket
-	const proxyInstance = ws.proxyInstance;
-	if (!proxyInstance) {
+	if (!ws.proxy) {
 		log.error('Proxy instance not available');
 		return;
 	}
 
 	// Send response back to the HTTP client
 	const processedBody = processResponseBody(body, headers);
-	
-	const success = proxyInstance.sendResponse(requestId, {
+
+	const success = ws.proxy.response.send(requestId, {
 		statusCode: status,
 		headers: headers || {},
 		body: processedBody

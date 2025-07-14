@@ -56,6 +56,7 @@ module.exports = class ProxyWebSocket {
   connection = {
     add: ws => {
       if (!ws || !ws.connectionId) throw new Error('Invalid WebSocket connection');
+      ws.proxy = this; // Attach proxy instance to WebSocket
       this.activeConnections.set(ws.connectionId, ws);
     },
     remove: id => {
@@ -94,6 +95,6 @@ module.exports = class ProxyWebSocket {
   }
 
   response = {
-    send: (requestId, responseData) => response.send(this.pendingRequests, requestId, responseData, log),
+    send: (requestId, responseData) => response.send(this.pendingRequests, requestId, responseData, this.deps.log),
   }
 }
