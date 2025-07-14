@@ -48,6 +48,8 @@ const hex = {
 	// client  replace the first three chars with 'C0X'
 	client: hex => hex.replace(/^.{3}/, 'C0X'),
 
+	connection: () => generateHex('C0X', 20),
+
 	// Generic hex generator
 	generate: generateHex
 };

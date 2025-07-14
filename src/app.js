@@ -5,9 +5,7 @@ require('dotenv').config();
 const log = require('./logging');
 const { mongo: { uri, options }, app: { host, port } } = require('./configs');
 const services = require('./services');
-const { ProxyWebSocket, MetricsWebSocket } = require('./wss');
 const { bull: { RequestWorker, MetricsWorker } } = require('./queues');
-const { metrics: { setMetricsWebSocket } } = require('./utils');
 
 // Global error handlers
 process.on('uncaughtException', (error) => {
@@ -71,12 +69,7 @@ const settings = {
 	idleTimeout: 0 // Disable idle timeout to prevent auto-disconnect
 };
 
-const proxyWs = new ProxyWebSocket(app, settings);
-const metricsWs = new MetricsWebSocket(app, settings);
-// Set metrics WebSocket instance for broadcasting
-setMetricsWebSocket(metricsWs);
-
 // Register HTTP services (health checks, etc.) with error handling
-services(app, proxyWs);
+services(app, settings);
 
 module.exports = app;

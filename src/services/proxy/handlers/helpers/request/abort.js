@@ -1,9 +1,9 @@
 // Handle request abort events
-const setupAbortHandler = (res, proxyWs, request, queries, log) => {
+const setupAbortHandler = (res, proxy, request, queries, log) => {
 	const { request: { crud: { updateStatus } } } = queries;
 	
 	res.onAborted(async () => {
-		proxyWs.removePendingRequest(request.hex);
+		proxy.removePendingRequest(request.hex);
 		if (request) {
 			try {
 				await updateStatus(request.hex, 'close', 'Request aborted');

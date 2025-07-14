@@ -3,11 +3,12 @@ const metrics = require('./metrics');
 const health = require('./health');
 const queries = require('../queries');
 const log = require('../logging');
-const { proxy: proxyConfig } = require('../configs');
+const { proxy: handler } = require('../handlers');
+const { ProxyWebSocket } = require('../wss');
 
 // export all services
-module.exports = (app, proxyWs) => {
-	proxy(app, queries, log, proxyConfig, proxyWs);
-	metrics(app, queries, log);
+module.exports = (app, settings) => {
+	proxy(app, queries, log, handler, settings, ProxyWebSocket);
+	metrics(app, queries, log, settings);
 	health(app, queries, log);
 }

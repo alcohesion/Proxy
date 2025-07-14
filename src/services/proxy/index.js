@@ -1,6 +1,6 @@
-const handlers = require('./handlers');
+const proxyHandler = require('./handlers');
 
-module.exports = (app, queries, log, proxyConfig, proxyWs) => {
+module.exports = (app, queries, log, handler, settings, wss) => {
 	// Initialize proxy request handler
-	handlers(app, queries, log, proxyConfig, proxyWs);
+	new proxyHandler(app, queries, log, handler, settings, wss);
 };

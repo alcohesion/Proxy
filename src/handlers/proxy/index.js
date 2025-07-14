@@ -1,7 +1,3 @@
-const auth = require('./auth');
 const message = require('./message');
 
-module.exports = {
-	auth,
-	message
-};
+module.exports = { message };

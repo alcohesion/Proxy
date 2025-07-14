@@ -1,7 +1,7 @@
-const manager = require('./manager');
+const request = require('./manager');
 const response = require('./response');
 
 module.exports = {
-	manager,
+	request,
 	response
 };

@@ -1,12 +1,12 @@
 // Connection authentication logic
-const validateToken = (token, deps) => {
+const validateToken = (token, log) => {
 	if (!token || typeof token !== 'string') {
 		return false;
 	}
 	
 	const validToken = process.env.AUTH_TOKEN;
 	if (!validToken) {
-		deps.log.error('AUTH_TOKEN environment variable not set');
+		log.error('AUTH_TOKEN environment variable not set');
 		return false;
 	}
 	
