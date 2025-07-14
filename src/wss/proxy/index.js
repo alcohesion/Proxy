@@ -76,6 +76,15 @@ module.exports = class ProxyWebSocket {
       if (!this.activeConnections.has(id)) return false;
       return this.activeConnections.get(id);
     },
+    has: id => {
+      if (!id) throw new Error('Connection ID is required');
+      return this.activeConnections.has(id);
+    },
+    close: id => {
+      if (!id) throw new Error('Connection ID is required');
+      this.activeConnections.delete(id);
+      this.deps.log.disconnect(`Connection closed - ID: ${id}`);
+    }
   }
 
   send = message => {

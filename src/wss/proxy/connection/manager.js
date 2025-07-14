@@ -76,8 +76,7 @@ module.exports = {
     }
   },
 
-  close: (ws, log) => {
-    log.disconnect(`WebSocket connection closed - ConnectionID: ${ws.connectionId}`);
+  close: (ws, code, message) => {
     return ws.connectionId;
   }
 };
